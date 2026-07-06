@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>いつだっけ帳 - 期限＆できごと記録メモ</title>
+<style>
+  :root {
+    --bg: #e6f6ff;
+    --card: #ffffff;
+    --accent: #38bdf8;
+    --accent2: #2dd4bf;
+    --text: #163b4d;
+    --muted: #6b8a9c;
+    --border: #d6eaf3;
+    --input: #f3fafd;
+    --danger: #f26d78;
+    --ok: #10b981;
+    --warn: #f2a83a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
+    background: linear-gradient(160deg, #e3f5ff 0%, #e2fbf1 55%, #eef9ff 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 {
+    font-size: 28px; font-weight: 800; letter-spacing: .01em;
+    background: linear-gradient(100deg, #2dd4bf, #38bdf8 55%, #818cf8);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+  .add-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 10px 30px rgba(20,90,130,0.10);
+  }
+  .field { margin-bottom: 12px; }
+  .field.two { display: flex; gap: 10px; }
+  .field.two > div { flex: 1; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input[type="text"], input[type="date"], input[type="number"], select {
+    width: 100%;
+    padding: 11px 12px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.15); }
+  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+  select { appearance: none; -webkit-appearance: none; cursor: pointer; }
+
+  .picker { display: flex; flex-wrap: wrap; gap: 7px; }
+  .icon-opt, .color-opt {
+    cursor: pointer; border: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center; transition: transform .08s;
+  }
+  .icon-opt { width: 38px; height: 38px; border-radius: 9px; background: var(--input); font-size: 19px; }
+  .icon-opt.sel { border-color: var(--accent); }
+  .emoji-input-row { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
+  #emojiInput { width: 130px; flex: 0 0 auto; text-align: center; }
+  .emoji-hint { font-size: 11px; color: var(--muted); }
+  .color-opt { width: 28px; height: 28px; border-radius: 50%; }
+  .color-opt.sel { border-color: #163b4d; transform: scale(1.12); }
+
+  .btn {
+    width: 100%; padding: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 9px; color: #0f172a;
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px;
+  }
+  .btn:active { transform: scale(0.99); }
+  .btn-ghost {
+    width: 100%; padding: 10px; margin-top: 8px;
+    background: transparent; border: 1px solid var(--border); border-radius: 9px;
+    color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-ghost:active { transform: scale(0.99); }
+  .editing .add-card { box-shadow: 0 0 0 2px var(--accent), 0 10px 30px rgba(20,90,130,0.12); }
+
+  .toolbar {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 8px; margin-bottom: 12px; font-size: 12px; color: var(--muted);
+  }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button {
+    background: var(--card); border: none; color: var(--muted);
+    font-size: 12px; padding: 6px 12px; cursor: pointer; font-family: inherit;
+  }
+  .seg button.active { background: var(--accent); color: #0f172a; font-weight: 700; }
+  .filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--card); color: var(--muted);
+    font-size: 12px; padding: 6px 11px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  }
+  .chip.active { background: var(--accent); color: #0e3346; border-color: var(--accent); font-weight: 700; }
+
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .item {
+    background: var(--card); border: 1px solid var(--border);
+    border-left: 4px solid var(--accent); border-radius: 14px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 6px 18px rgba(20,90,130,0.08); touch-action: pan-y;
+  }
+  .item.expired { border-color: var(--danger); background: #fff2f3; }
+  .item.dragging { opacity: .9; box-shadow: 0 16px 30px rgba(20,90,130,0.20); }
+  .handle {
+    cursor: grab; color: var(--muted); font-size: 18px; line-height: 1;
+    padding: 4px 2px; touch-action: none; user-select: none; flex-shrink: 0;
+  }
+  .handle:active { cursor: grabbing; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .item .info { flex: 1; min-width: 0; }
+  .nameline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .item .iname { font-size: 15px; font-weight: 600; word-break: break-word; }
+  .pill {
+    font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  }
+  .item .sub { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .item .count { text-align: right; flex-shrink: 0; }
+  .item .num { font-size: 30px; font-weight: 800; line-height: 1; }
+  .item .unit { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .edit, .del {
+    background: none; border: none; color: var(--muted);
+    font-size: 16px; cursor: pointer; line-height: 1; padding: 4px;
+  }
+  .edit:hover { color: var(--accent); }
+  .del:hover { color: var(--danger); }
+  .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>いつだっけ帳 🗓</h1>
+      <p class="subtitle">コスメ・日用品の期限も、会った人・やったことも、ゆるっと記録 ✨</p>
+    </header>
+
+    <div class="add-card">
+      <div class="field">
+        <label for="category">カテゴリ</label>
+        <select id="category"></select>
+      </div>
+      <div class="field">
+        <label for="name">名称</label>
+        <input type="text" id="name" placeholder="例: 日焼け止め、化粧水、歯ブラシ">
+      </div>
+      <div class="field two">
+        <div>
+          <label for="start" id="dateLabel">開封日 / 使用開始日</label>
+          <input type="date" id="start">
+        </div>
+        <div id="periodWrap">
+          <label for="period">使用可能期間</label>
+          <select id="period">
+            <option value="m6">6ヶ月（化粧品6M）</option>
+            <option value="m12">12ヶ月（化粧品12M）</option>
+            <option value="m1">1ヶ月</option>
+            <option value="m3">3ヶ月</option>
+            <option value="m18">18ヶ月</option>
+            <option value="m24">24ヶ月</option>
+            <option value="custom">日数を指定…</option>
+            <option value="none">期限なし（経過のみ）</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" id="customWrap" style="display:none;">
+        <label for="customDays">使用可能日数</label>
+        <input type="number" id="customDays" min="1" placeholder="例: 45" value="30">
+      </div>
+      <div class="field">
+        <label>アイコン</label>
+        <div class="picker" id="iconPicker"></div>
+        <div class="emoji-input-row">
+          <input type="text" id="emojiInput" inputmode="text" maxlength="12" placeholder="好きな絵文字…">
+          <span class="emoji-hint">Mac: ⌃⌘Space / iPhone: 😀キー</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>カラー</label>
+        <div class="picker" id="colorPicker"></div>
+      </div>
+      <button class="btn" id="addBtn">＋ 追加する</button>
+      <button class="btn-ghost" id="cancelBtn" style="display:none;">編集をやめる</button>
+    </div>
+
+    <div class="filters" id="filters"></div>
+
+    <div class="toolbar">
+      <span>並び順</span>
+      <div class="seg">
+        <button data-mode="expiry" id="segExpiry">期限順</button>
+        <button data-mode="recent" id="segRecent">新しい順</button>
+        <button data-mode="manual" id="segManual">手動</button>
+      </div>
+    </div>
+
+    <div class="list" id="list"></div>
+  </div>
+
+<script>
+  const KEY = "expiryManagerV1";
+  const MODE_KEY = "expiryManagerModeV1";
+  const FILTER_KEY = "expiryManagerFilterV1";
+  const $ = (id) => document.getElementById(id);
+
+  const ICONS = ["🧴","💄","🧼","🪥","🧻","🧷","💊","🧃","☕","🌿","🍼","📦"];
+  const COLORS = ["#38bdf8","#818cf8","#34d399","#fbbf24","#f472b6","#f87171","#2dd4bf","#a78bfa"];
+  const SOON = 30; // 期限「まもなく」判定（日）
+
+  // カテゴリ定義。hasPeriod=false のカテゴリは「期限なし＝経過（◯日前）」で管理
+  const CATS = [
+    { id: "goods",  label: "コスメ・日用品", emoji: "🧴", defaultIcon: "🧴", color: "#38bdf8", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 日焼け止め、化粧水、歯ブラシ" },
+    { id: "people", label: "会った人",       emoji: "🧑‍🤝‍🧑", defaultIcon: "🧑", color: "#f472b6", hasPeriod: false, datePrefix: "会った日", dateLabel: "会った日",           namePh: "例: 田中さん、家族と食事" },
+    { id: "did",    label: "やったこと",     emoji: "✅", defaultIcon: "✅", color: "#34d399", hasPeriod: false, datePrefix: "やった日", dateLabel: "やった日",           namePh: "例: 美容院、ジム、歯医者" },
+    { id: "other",  label: "その他",         emoji: "📌", defaultIcon: "📌", color: "#fbbf24", hasPeriod: false, datePrefix: "日付",   dateLabel: "日付",               namePh: "例: 好きなことを記録" },
+  ];
+  function catOf(id) { return CATS.find(c => c.id === id) || CATS[0]; }
+
+  let selIcon = ICONS[0];
+  let selColor = COLORS[0];
+  let sortMode = localStorage.getItem(MODE_KEY) || "expiry";
+  let filterCat = localStorage.getItem(FILTER_KEY) || "all";
+  let editingId = null;
+
+  function todayMid() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+  function todayStr() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+  function elapsedDays(startISO) {
+    const s = new Date(startISO + "T00:00:00");
+    return Math.floor((todayMid() - s) / 86400000);
+  }
+  function fmt(iso) {
+    const d = (iso instanceof Date) ? iso : new Date(iso + "T00:00:00");
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  }
+
+  // period stored as {type:'months',value} | {type:'days',value} | {type:'none'}
+  function expiryOf(it) {
+    const p = it.period;
+    if (!p || p.type === "none") return null;
+    const s = new Date(it.start + "T00:00:00");
+    if (p.type === "months") return new Date(s.getFullYear(), s.getMonth() + p.value, s.getDate());
+    return new Date(s.getTime() + p.value * 86400000);
+  }
+  function remainingDays(it) {
+    const exp = expiryOf(it);
+    if (!exp) return null;
+    return Math.floor((exp - todayMid()) / 86400000);
+  }
+  function periodLabel(p) {
+    if (!p || p.type === "none") return "期限なし";
+    if (p.type === "months") return `${p.value}ヶ月`;
+    return `${p.value}日間`;
+  }
+  function hexA(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+  }
+  // 入力文字列の先頭1絵文字（ZWJ結合・肌色などの結合文字対応）
+  function firstEmoji(str) {
+    str = (str || "").trim();
+    if (!str) return "";
+    if (typeof Intl !== "undefined" && Intl.Segmenter) {
+      const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      for (const s of seg.segment(str)) return s.segment;
+    }
+    return Array.from(str)[0];
+  }
+
+  function loadItems() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch (e) { return []; }
+  }
+  function saveItems(items) { localStorage.setItem(KEY, JSON.stringify(items)); }
+
+  function buildPickers() {
+    const ip = $("iconPicker"); ip.innerHTML = "";
+    ICONS.forEach(ic => {
+      const b = document.createElement("div");
+      b.className = "icon-opt" + (ic === selIcon ? " sel" : "");
+      b.textContent = ic;
+      b.onclick = () => { selIcon = ic; $("emojiInput").value = ""; buildPickers(); };
+      ip.appendChild(b);
+    });
+    // プリセット以外の絵文字を選んでいる場合は選択中スウォットを表示
+    if (selIcon && !ICONS.includes(selIcon)) {
+      const b = document.createElement("div");
+      b.className = "icon-opt sel";
+      b.textContent = selIcon;
+      b.title = "選択中の絵文字";
+      b.onclick = () => $("emojiInput").focus();
+      ip.appendChild(b);
+    }
+    const cp = $("colorPicker"); cp.innerHTML = "";
+    COLORS.forEach(c => {
+      const b = document.createElement("div");
+      b.className = "color-opt" + (c === selColor ? " sel" : "");
+      b.style.background = c;
+      b.onclick = () => { selColor = c; buildPickers(); };
+      cp.appendChild(b);
+    });
+  }
+
+  function sortForDisplay(items) {
+    if (sortMode === "manual") return items;
+    if (sortMode === "recent") {
+      // 新しい順（日付の新しいものが上）
+      return items.slice().sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
+    }
+    // 期限が近い順: 期限切れ→まもなく→余裕→期限なし
+    return items.slice().sort((a, b) => {
+      const ra = remainingDays(a), rb = remainingDays(b);
+      const va = (ra === null) ? Infinity : ra;
+      const vb = (rb === null) ? Infinity : rb;
+      return va - vb;
+    });
+  }
+
+  function renderFilters() {
+    const wrap = $("filters"); wrap.innerHTML = "";
+    const items = loadItems();
+    const chips = [{ id: "all", label: "すべて", emoji: "🗂" }].concat(CATS);
+    chips.forEach(c => {
+      const count = (c.id === "all") ? items.length : items.filter(it => (it.cat || "goods") === c.id).length;
+      const b = document.createElement("button");
+      b.className = "chip" + (filterCat === c.id ? " active" : "");
+      b.textContent = `${c.emoji} ${c.label}` + (count ? ` (${count})` : "");
+      b.onclick = () => { filterCat = c.id; localStorage.setItem(FILTER_KEY, filterCat); render(); };
+      wrap.appendChild(b);
+    });
+  }
+
+  function render() {
+    renderFilters();
+    let items = loadItems();
+    const total = items.length;
+    if (filterCat !== "all") items = items.filter(it => (it.cat || "goods") === filterCat);
+    items = sortForDisplay(items);
+    $("segExpiry").classList.toggle("active", sortMode === "expiry");
+    $("segRecent").classList.toggle("active", sortMode === "recent");
+    $("segManual").classList.toggle("active", sortMode === "manual");
+
+    const list = $("list");
+    list.innerHTML = "";
+    if (items.length === 0) {
+      list.innerHTML = (total === 0)
+        ? '<div class="empty">まだ登録がありません。<br>コスメ・日用品や、会った人・やったことを追加してください。</div>'
+        : '<div class="empty">このカテゴリの登録はありません。</div>';
+      return;
+    }
+
+    for (const it of items) {
+      const cat = catOf(it.cat || "goods");
+      const color = it.color || COLORS[0];
+      const icon = it.icon || ICONS[0];
+      const elapsed = elapsedDays(it.start);
+
+      // カテゴリ別の表示・ステータス判定
+      let pillText, pillColor, numText, numColor, unitText, sub, isExpired = false;
+      if (cat.hasPeriod) {
+        const rem = remainingDays(it);
+        const exp = expiryOf(it);
+        if (rem === null) {
+          pillText = "使用中"; pillColor = "#34d399";
+          numText = Math.max(elapsed, 0).toLocaleString(); numColor = color; unitText = "日経過";
+        } else if (rem < 0) {
+          isExpired = true;
+          pillText = "期限切れ"; pillColor = "#f87171";
+          numText = Math.abs(rem).toLocaleString(); numColor = "#f87171"; unitText = "日超過";
+        } else if (rem <= SOON) {
+          pillText = "まもなく期限"; pillColor = "#fbbf24";
+          numText = rem.toLocaleString(); numColor = "#fbbf24"; unitText = "日で期限";
+        } else {
+          pillText = "使用中"; pillColor = "#34d399";
+          numText = rem.toLocaleString(); numColor = "#34d399"; unitText = "日で期限";
+        }
+        sub = `${cat.datePrefix} ${fmt(it.start)}（${elapsed}日経過）`;
+        if (exp) sub += `<br>期限 ${fmt(exp)}・使用期間 ${periodLabel(it.period)}`;
+      } else {
+        pillText = cat.label; pillColor = color;
+        numText = Math.max(elapsed, 0).toLocaleString(); numColor = color; unitText = "日ぶり";
+        sub = `${cat.datePrefix} ${fmt(it.start)}`;
+      }
+
+      const el = document.createElement("div");
+      el.className = "item" + (isExpired ? " expired" : "");
+      el.dataset.id = it.id;
+      el.style.borderLeftColor = isExpired ? "#f87171" : color;
+      el.innerHTML = `
+        <div class="handle" title="ドラッグで並び替え">⋮⋮</div>
+        <div class="avatar"></div>
+        <div class="info">
+          <div class="nameline">
+            <span class="iname"></span>
+            <span class="pill"></span>
+          </div>
+          <div class="sub"></div>
+        </div>
+        <div class="count">
+          <div class="num"></div>
+          <div class="unit"></div>
+        </div>
+        <div class="actions">
+          <button class="edit" title="編集">✎</button>
+          <button class="del" title="削除">✕</button>
+        </div>`;
+
+      const av = el.querySelector(".avatar");
+      av.textContent = icon;
+      av.style.background = hexA(color, 0.18);
+      el.querySelector(".iname").textContent = it.name || "(名称なし)";
+      const pill = el.querySelector(".pill");
+      pill.textContent = pillText;
+      pill.style.color = pillColor;
+      pill.style.background = hexA(pillColor, 0.16);
+      el.querySelector(".sub").innerHTML = sub;
+      const numEl = el.querySelector(".num");
+      numEl.textContent = numText;
+      numEl.style.color = numColor;
+      el.querySelector(".unit").textContent = unitText;
+      el.querySelector(".edit").onclick = () => startEdit(it.id);
+      el.querySelector(".del").onclick = () => removeItem(it.id);
+
+      const handle = el.querySelector(".handle");
+      if (sortMode === "manual") {
+        handle.addEventListener("pointerdown", (e) => startDrag(e, el, handle));
+      } else {
+        handle.style.display = "none";
+      }
+      list.appendChild(el);
+    }
+  }
+
+  function removeItem(id) {
+    saveItems(loadItems().filter(x => x.id !== id));
+    render();
+  }
+
+  function startDrag(e, itemEl, handle) {
+    e.preventDefault();
+    const list = $("list");
+    itemEl.classList.add("dragging");
+    handle.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      const y = ev.clientY;
+      const sibs = [...list.querySelectorAll(".item:not(.dragging)")];
+      let placed = false;
+      for (const sib of sibs) {
+        const r = sib.getBoundingClientRect();
+        if (y < r.top + r.height / 2) { list.insertBefore(itemEl, sib); placed = true; break; }
+      }
+      if (!placed) list.appendChild(itemEl);
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      itemEl.classList.remove("dragging");
+      const ids = [...list.querySelectorAll(".item")].map(el => el.dataset.id);
+      const items = loadItems().slice().sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+      saveItems(items);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+  }
+
+  function readPeriod() {
+    const v = $("period").value;
+    if (v === "none") return { type: "none" };
+    if (v === "custom") {
+      const d = parseInt($("customDays").value, 10);
+      return { type: "days", value: (d && d > 0) ? d : 30 };
+    }
+    return { type: "months", value: parseInt(v.slice(1), 10) };
+  }
+
+  $("period").onchange = () => {
+    $("customWrap").style.display = ($("period").value === "custom") ? "block" : "none";
+  };
+
+  function populateCategorySelect() {
+    const sel = $("category"); sel.innerHTML = "";
+    CATS.forEach(c => {
+      const o = document.createElement("option");
+      o.value = c.id; o.textContent = `${c.emoji} ${c.label}`;
+      sel.appendChild(o);
+    });
+  }
+
+  // カテゴリに応じてフォームの見た目（名称の例・日付ラベル・期限欄の要否）を切り替え
+  function applyCategoryUI() {
+    const c = catOf($("category").value);
+    $("name").placeholder = c.namePh;
+    $("dateLabel").textContent = c.dateLabel;
+    $("periodWrap").style.display = c.hasPeriod ? "block" : "none";
+    $("customWrap").style.display =
+      (c.hasPeriod && $("period").value === "custom") ? "block" : "none";
+  }
+  $("category").onchange = () => {
+    applyCategoryUI();
+    const c = catOf($("category").value);
+    selIcon = c.defaultIcon;
+    selColor = c.color;
+    $("emojiInput").value = "";
+    buildPickers();
+  };
+
+  // 保存する期間（期限を持たないカテゴリは常に「期限なし」）
+  function currentPeriod() {
+    return catOf($("category").value).hasPeriod ? readPeriod() : { type: "none" };
+  }
+
+  $("emojiInput").addEventListener("input", () => {
+    const e = firstEmoji($("emojiInput").value);
+    if (e) { selIcon = e; buildPickers(); }
+  });
+
+  function fillPeriod(period) {
+    if (!period || period.type === "none") { $("period").value = "none"; }
+    else if (period.type === "months") { $("period").value = "m" + period.value; }
+    else { $("period").value = "custom"; $("customDays").value = period.value; }
+    $("customWrap").style.display = ($("period").value === "custom") ? "block" : "none";
+  }
+
+  function startEdit(id) {
+    const it = loadItems().find(x => x.id === id);
+    if (!it) return;
+    editingId = id;
+    $("category").value = it.cat || "goods";
+    $("name").value = it.name || "";
+    $("start").value = it.start;
+    fillPeriod(it.period);
+    applyCategoryUI();
+    selIcon = it.icon || ICONS[0];
+    selColor = it.color || COLORS[0];
+    buildPickers();
+    $("addBtn").textContent = "✓ 保存する";
+    $("cancelBtn").style.display = "block";
+    document.body.classList.add("editing");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function exitEdit() {
+    editingId = null;
+    $("category").value = "goods";
+    $("name").value = "";
+    $("start").value = todayStr();
+    $("period").value = "m6";
+    applyCategoryUI();
+    selIcon = ICONS[0];
+    selColor = COLORS[0];
+    $("emojiInput").value = "";
+    buildPickers();
+    $("addBtn").textContent = "＋ 追加する";
+    $("cancelBtn").style.display = "none";
+    document.body.classList.remove("editing");
+  }
+
+  $("cancelBtn").onclick = exitEdit;
+
+  $("addBtn").onclick = () => {
+    const name = $("name").value.trim();
+    const start = $("start").value;
+    if (!start) { alert("開封日 / 使用開始日を選択してください"); return; }
+    const items = loadItems();
+    if (editingId) {
+      const it = items.find(x => x.id === editingId);
+      if (it) Object.assign(it, { name, start, cat: $("category").value, period: currentPeriod(), icon: selIcon, color: selColor });
+      saveItems(items);
+      exitEdit();
+    } else {
+      items.push({
+        id: Date.now() + "-" + Math.random().toString(36).slice(2, 6),
+        name, start, cat: $("category").value, period: currentPeriod(), icon: selIcon, color: selColor
+      });
+      saveItems(items);
+      $("name").value = "";
+      $("start").value = todayStr();
+    }
+    render();
+  };
+
+  document.querySelectorAll(".seg button").forEach(b => {
+    b.onclick = () => { sortMode = b.dataset.mode; localStorage.setItem(MODE_KEY, sortMode); render(); };
+  });
+
+  populateCategorySelect();
+  applyCategoryUI();
+  $("start").value = todayStr();
+  buildPickers();
+  render();
+</script>
+</body>
+</html>

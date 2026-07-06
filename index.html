@@ -2,8 +2,18 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>いつだっけ帳 - 期限＆できごと記録メモ</title>
+<meta name="description" content="コスメ・日用品の期限も、会った人・やったことも、ゆるっと記録できるメモアプリ">
+<meta name="theme-color" content="#38bdf8">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS ホーム画面アプリ対応 -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="いつだっけ帳">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
   :root {
     --bg: #e6f6ff;
@@ -64,17 +74,51 @@
   select { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
   .picker { display: flex; flex-wrap: wrap; gap: 7px; }
-  .icon-opt, .color-opt {
+  .color-opt {
     cursor: pointer; border: 2px solid transparent;
     display: flex; align-items: center; justify-content: center; transition: transform .08s;
+    width: 28px; height: 28px; border-radius: 50%;
   }
-  .icon-opt { width: 38px; height: 38px; border-radius: 9px; background: var(--input); font-size: 19px; }
-  .icon-opt.sel { border-color: var(--accent); }
-  .emoji-input-row { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
-  #emojiInput { width: 130px; flex: 0 0 auto; text-align: center; }
-  .emoji-hint { font-size: 11px; color: var(--muted); }
-  .color-opt { width: 28px; height: 28px; border-radius: 50%; }
   .color-opt.sel { border-color: #163b4d; transform: scale(1.12); }
+
+  /* 絵文字ピッカー */
+  .icon-current { display: flex; align-items: center; gap: 10px; }
+  .icon-current-emoji {
+    width: 46px; height: 46px; border-radius: 11px; background: var(--input);
+    display: flex; align-items: center; justify-content: center; font-size: 26px; flex: 0 0 auto;
+  }
+  .btn-pick {
+    padding: 11px 15px; border: 1px solid var(--border); background: var(--input);
+    border-radius: 9px; color: var(--text); font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .emoji-panel {
+    margin-top: 10px; border: 1px solid var(--border); border-radius: 12px;
+    background: var(--input); padding: 10px;
+  }
+  .emoji-panel[hidden] { display: none; }
+  #emojiSearch { width: 100%; margin-bottom: 8px; }
+  .emoji-cats {
+    display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px;
+    margin-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .emoji-cat {
+    flex: 0 0 auto; width: 34px; height: 34px; border: none; background: transparent;
+    border-radius: 8px; font-size: 18px; cursor: pointer; opacity: .5;
+  }
+  .emoji-cat.active { background: var(--card); opacity: 1; box-shadow: inset 0 0 0 2px var(--accent); }
+  .emoji-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    gap: 2px; max-height: 200px; overflow-y: auto;
+  }
+  .emoji-grid button {
+    aspect-ratio: 1 / 1; border: none; background: transparent; border-radius: 8px;
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 0;
+  }
+  .emoji-grid button:hover { background: var(--card); }
+  .emoji-grid .none { grid-column: 1 / -1; color: var(--muted); font-size: 13px; text-align: center; padding: 16px; }
+  .emoji-direct { margin-top: 8px; }
+  #emojiInput { width: 100%; }
 
   .btn {
     width: 100%; padding: 12px;
@@ -187,10 +231,17 @@
       </div>
       <div class="field">
         <label>アイコン</label>
-        <div class="picker" id="iconPicker"></div>
-        <div class="emoji-input-row">
-          <input type="text" id="emojiInput" inputmode="text" maxlength="12" placeholder="好きな絵文字…">
-          <span class="emoji-hint">Mac: ⌃⌘Space / iPhone: 😀キー</span>
+        <div class="icon-current">
+          <span class="icon-current-emoji" id="iconCurrent">🧴</span>
+          <button type="button" class="btn-pick" id="pickBtn">絵文字を選ぶ ▾</button>
+        </div>
+        <div class="emoji-panel" id="emojiPanel" hidden>
+          <input type="text" id="emojiSearch" inputmode="text" placeholder="検索（cat / 猫 / ハート …）">
+          <div class="emoji-cats" id="emojiCats"></div>
+          <div class="emoji-grid" id="emojiGrid"></div>
+          <div class="emoji-direct">
+            <input type="text" id="emojiInput" inputmode="text" maxlength="12" placeholder="直接入力（iPhone 😀キー / Mac ⌃⌘Space）">
+          </div>
         </div>
       </div>
       <div class="field">
@@ -224,6 +275,21 @@
   const ICONS = ["🧴","💄","🧼","🪥","🧻","🧷","💊","🧃","☕","🌿","🍼","📦"];
   const COLORS = ["#38bdf8","#818cf8","#34d399","#fbbf24","#f472b6","#f87171","#2dd4bf","#a78bfa"];
   const SOON = 30; // 期限「まもなく」判定（日）
+
+  // 絵文字ピッカー用データ（カテゴリ別。各要素は [絵文字, 検索キーワード]）
+  const CAT_ICON = { "よく使う":"⭐","顔":"😀","人":"🧑","動物・自然":"🐶","食べ物":"🍎","アクティビティ":"⚽","旅行・場所":"✈️","もの":"💡","記号":"❤️" };
+  const EMOJI = {
+    "よく使う": [["🧴","lotion skincare 化粧 スキンケア"],["💄","lipstick メイク 口紅 コスメ"],["🧼","soap 石鹸"],["🪥","toothbrush 歯ブラシ"],["🧻","paper トイレ"],["🧷","pin ピン"],["💊","pill 薬"],["🧃","juice 飲み物"],["☕","coffee コーヒー"],["🌿","herb 葉 ハーブ"],["🍼","bottle 哺乳瓶"],["📦","box 箱 在庫"],["✅","check done 済 完了"],["⭐","star お気に入り"],["📌","pin メモ"],["❤️","heart 好き"],["🗓️","calendar 予定 カレンダー"],["📝","memo メモ"],["💇","haircut 美容院 髪"],["🏋️","gym ジム 筋トレ"],["🧑","person 人"],["🎂","cake 誕生日"]],
+    "顔": [["😀","grin 笑顔"],["😃","smile 笑"],["😄","laugh 笑"],["😁","beam にこ"],["😆","laugh 大笑い"],["😅","sweat 汗"],["😂","joy 涙 笑"],["🤣","rofl 爆笑"],["🙂","slight"],["😉","wink ウインク"],["😊","blush うれしい"],["😍","love ハート目 好き"],["🥰","love 愛"],["😘","kiss キス"],["😋","yum おいしい"],["😜","tongue"],["🤪","zany"],["😎","cool サングラス"],["🥳","party おめでとう お祝い"],["🤔","think 考え"],["😐","neutral"],["😴","sleep 眠い"],["🤒","sick 熱 風邪"],["🤕","hurt けが"],["🥺","plead お願い"],["😢","cry 泣"],["😭","sob 号泣"],["😤","huff"],["😠","angry 怒"],["😱","scream びっくり"],["😳","flush 照れ"],["🤗","hug ハグ"],["🙄","roll"],["🤥","lie 嘘"],["😇","angel"],["🤩","star 目 わくわく"]],
+    "人": [["🧑","person 人"],["👩","woman 女性"],["👨","man 男性"],["👶","baby 赤ちゃん"],["🧒","child 子供"],["👧","girl 女の子"],["👦","boy 男の子"],["🧓","old 高齢"],["👵","grandma おばあ"],["👴","grandpa おじい"],["👮","police 警察"],["👩‍⚕️","doctor 医者 看護"],["👨‍🍳","cook 料理人 シェフ"],["👩‍🏫","teacher 先生"],["🧑‍🤝‍🧑","couple 友達"],["👫","pair カップル"],["👪","family 家族"],["🙋","raise 手"],["🙆","ok まる"],["🙅","no バツ"],["💁","info 案内"],["🙇","bow お辞儀 謝"],["🤦","facepalm"],["🤷","shrug"],["💇","haircut 美容院"],["💆","massage マッサージ"],["🧖","spa サウナ 温泉"],["🏃","run 走 ランニング"],["🚶","walk 散歩"],["🧘","yoga 瞑想 ヨガ"],["🏋️","lift 筋トレ ジム"],["🤸","cartwheel 運動"],["👋","wave バイバイ"],["🙌","raise 万歳"],["👏","clap 拍手"],["🙏","pray ありがとう お願い"],["💪","muscle 筋肉"],["👀","eyes 目"]],
+    "動物・自然": [["🐶","dog 犬"],["🐱","cat 猫"],["🐭","mouse ねずみ"],["🐹","hamster ハムスター"],["🐰","rabbit うさぎ"],["🦊","fox きつね"],["🐻","bear 熊"],["🐼","panda パンダ"],["🐨","koala コアラ"],["🐯","tiger 虎"],["🦁","lion ライオン"],["🐮","cow 牛"],["🐷","pig 豚"],["🐸","frog カエル"],["🐵","monkey 猿"],["🐔","chicken 鶏"],["🐧","penguin ペンギン"],["🐦","bird 鳥"],["🦄","unicorn ユニコーン"],["🐝","bee 蜂"],["🦋","butterfly 蝶"],["🐢","turtle 亀"],["🐬","dolphin イルカ"],["🐳","whale クジラ"],["🌸","blossom 桜"],["🌷","tulip チューリップ"],["🌹","rose バラ"],["🌻","sunflower ひまわり"],["🌼","flower 花"],["🌱","sprout 芽"],["🌲","tree 木"],["🌳","tree 木"],["🍀","clover 四つ葉"],["🍁","maple 紅葉"],["🌊","wave 波 海"],["🔥","fire 火"],["🌙","moon 月"],["☀️","sun 太陽 晴れ"],["⛅","cloud 曇り"],["☔","rain 雨"],["❄️","snow 雪"],["🌈","rainbow 虹"]],
+    "食べ物": [["🍎","apple りんご"],["🍊","orange みかん"],["🍋","lemon レモン"],["🍌","banana バナナ"],["🍉","watermelon スイカ"],["🍇","grape ぶどう"],["🍓","strawberry いちご"],["🫐","blueberry ブルーベリー"],["🍒","cherry さくらんぼ"],["🍑","peach 桃"],["🥭","mango マンゴー"],["🍍","pineapple パイナップル"],["🥝","kiwi キウイ"],["🍅","tomato トマト"],["🥑","avocado アボカド"],["🥦","broccoli"],["🌽","corn とうもろこし"],["🥕","carrot にんじん"],["🍞","bread パン"],["🧀","cheese チーズ"],["🥚","egg 卵"],["🍳","fry 目玉焼き"],["🍔","burger ハンバーガー"],["🍟","fries ポテト"],["🍕","pizza ピザ"],["🌭","hotdog"],["🥪","sandwich サンド"],["🌮","taco タコス"],["🍜","ramen ラーメン"],["🍣","sushi 寿司"],["🍱","bento 弁当"],["🍙","rice おにぎり"],["🍛","curry カレー"],["🍤","shrimp えび"],["🧁","cupcake カップケーキ"],["🍰","cake ケーキ"],["🎂","birthday 誕生日"],["🍫","chocolate チョコ"],["🍬","candy あめ"],["🍩","donut ドーナツ"],["🍪","cookie クッキー"],["🍵","tea お茶"],["🍺","beer ビール"],["🍷","wine ワイン"],["🥤","soda ジュース"]],
+    "アクティビティ": [["⚽","soccer サッカー"],["🏀","basketball バスケ"],["🏈","football"],["⚾","baseball 野球"],["🎾","tennis テニス"],["🏐","volleyball バレー"],["🏓","pingpong 卓球"],["🏸","badminton バドミントン"],["🥊","boxing ボクシング"],["⛳","golf ゴルフ"],["🎣","fishing 釣り"],["🏊","swim 水泳"],["🚴","cycle 自転車"],["🧗","climb クライミング"],["⛷️","ski スキー"],["🏂","snowboard スノボ"],["🎽","run マラソン"],["🎨","art 絵 アート"],["🎬","movie 映画"],["🎤","sing カラオケ 歌"],["🎧","music 音楽"],["🎮","game ゲーム"],["🎲","dice サイコロ"],["🎯","dart ダーツ"],["🎳","bowling ボウリング"],["📚","books 読書 勉強"],["✍️","write 勉強 執筆"],["🎸","guitar ギター"],["🎹","piano ピアノ"],["🥁","drum ドラム"],["🛒","shopping 買い物"],["🍳","cook 料理"],["🧹","clean 掃除"],["🧺","laundry 洗濯"]],
+    "旅行・場所": [["🚗","car 車"],["🚕","taxi タクシー"],["🚌","bus バス"],["🚲","bike 自転車"],["🛴","scooter"],["✈️","plane 飛行機"],["🚀","rocket ロケット"],["🚉","station 駅"],["🚇","metro 電車 地下鉄"],["⛴️","ferry 船"],["🏠","house 家"],["🏡","home 家"],["🏢","office 会社 ビル"],["🏥","hospital 病院"],["🏦","bank 銀行"],["🏫","school 学校"],["🏨","hotel ホテル"],["⛩️","shrine 神社"],["🗼","tower タワー"],["🏖️","beach 海 ビーチ"],["⛰️","mountain 山"],["🏕️","camp キャンプ"],["🌍","earth 地球"],["🗺️","map 地図"],["🧳","luggage 旅行 スーツケース"]],
+    "もの": [["💡","bulb アイデア 電球"],["🔦","flashlight ライト"],["🕯️","candle ろうそく"],["📱","phone スマホ"],["💻","laptop パソコン"],["⌨️","keyboard キーボード"],["🖥️","desktop"],["📷","camera カメラ"],["🎥","video 動画"],["📺","tv テレビ"],["⏰","clock 時計 目覚まし"],["⏳","hourglass 砂時計"],["⌚","watch 腕時計"],["💰","money お金"],["💳","card カード"],["💊","pill 薬"],["💉","syringe 注射"],["🩹","bandage 絆創膏"],["🩺","stethoscope 聴診器"],["🌡️","thermometer 体温 熱"],["🧯","extinguisher 消火器"],["🔑","key 鍵"],["🔒","lock ロック"],["🪒","razor 髭剃り カミソリ"],["🧽","sponge スポンジ"],["🧼","soap 石鹸"],["🚿","shower シャワー"],["🛁","bath 風呂"],["🧴","lotion 化粧水"],["👓","glasses メガネ"],["🕶️","sunglasses サングラス"],["👜","bag バッグ"],["👛","purse 財布"],["🎒","backpack リュック"],["🛍️","shopping 買い物"],["👗","dress 服 ワンピース"],["👠","heels 靴 ヒール"],["👟","sneaker スニーカー"],["🧢","cap 帽子"],["🧦","socks 靴下"],["🧤","gloves 手袋"],["🧣","scarf マフラー"],["☂️","umbrella 傘"],["🎁","gift プレゼント"],["🎈","balloon 風船"],["🎉","party お祝い クラッカー"],["📦","box 箱"],["✂️","scissors はさみ"],["📏","ruler 定規"],["📎","clip クリップ"],["🔖","bookmark しおり"],["📖","book 本"],["📅","calendar カレンダー"],["🖊️","pen ペン"]],
+    "記号": [["❤️","red heart 好き 赤"],["🧡","orange heart 橙"],["💛","yellow heart 黄"],["💚","green heart 緑"],["💙","blue heart 青"],["💜","purple heart 紫"],["🖤","black heart 黒"],["🤍","white heart 白"],["💗","pink heart ピンク"],["💕","hearts ハート"],["💖","sparkle heart キラキラ"],["✨","sparkles キラキラ"],["⭐","star 星"],["🌟","glow 星"],["💫","dizzy"],["🔥","fire 火 人気"],["💯","hundred 満点"],["✅","check チェック 済"],["❌","cross バツ"],["⭕","circle まる"],["❗","exclamation"],["❓","question はてな"],["💤","sleep zzz 眠"],["🔔","bell ベル 通知"],["🎵","note 音符"],["🌈","rainbow 虹"]],
+  };
+  let emojiCat = Object.keys(EMOJI)[0];
 
   // カテゴリ定義。hasPeriod=false のカテゴリは「期限なし＝経過（◯日前）」で管理
   const CATS = [
@@ -294,23 +360,7 @@
   function saveItems(items) { localStorage.setItem(KEY, JSON.stringify(items)); }
 
   function buildPickers() {
-    const ip = $("iconPicker"); ip.innerHTML = "";
-    ICONS.forEach(ic => {
-      const b = document.createElement("div");
-      b.className = "icon-opt" + (ic === selIcon ? " sel" : "");
-      b.textContent = ic;
-      b.onclick = () => { selIcon = ic; $("emojiInput").value = ""; buildPickers(); };
-      ip.appendChild(b);
-    });
-    // プリセット以外の絵文字を選んでいる場合は選択中スウォットを表示
-    if (selIcon && !ICONS.includes(selIcon)) {
-      const b = document.createElement("div");
-      b.className = "icon-opt sel";
-      b.textContent = selIcon;
-      b.title = "選択中の絵文字";
-      b.onclick = () => $("emojiInput").focus();
-      ip.appendChild(b);
-    }
+    $("iconCurrent").textContent = selIcon;
     const cp = $("colorPicker"); cp.innerHTML = "";
     COLORS.forEach(c => {
       const b = document.createElement("div");
@@ -531,8 +581,53 @@
 
   $("emojiInput").addEventListener("input", () => {
     const e = firstEmoji($("emojiInput").value);
-    if (e) { selIcon = e; buildPickers(); }
+    if (e) { selIcon = e; $("iconCurrent").textContent = e; }
   });
+
+  function buildEmojiCats() {
+    const nav = $("emojiCats"); nav.innerHTML = "";
+    Object.keys(EMOJI).forEach((k) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "emoji-cat" + (k === emojiCat ? " active" : "");
+      b.textContent = CAT_ICON[k] || "•";
+      b.title = k;
+      b.onclick = () => { emojiCat = k; $("emojiSearch").value = ""; buildEmojiCats(); renderEmojiGrid(); };
+      nav.appendChild(b);
+    });
+  }
+  function renderEmojiGrid() {
+    const grid = $("emojiGrid"); grid.innerHTML = "";
+    const q = $("emojiSearch").value.trim().toLowerCase();
+    let list;
+    if (q) {
+      const seen = new Set(); list = [];
+      for (const k in EMOJI) for (const [e, kw] of EMOJI[k]) {
+        if ((e === q || kw.toLowerCase().includes(q)) && !seen.has(e)) { seen.add(e); list.push(e); }
+      }
+    } else {
+      list = EMOJI[emojiCat].map((x) => x[0]);
+    }
+    if (list.length === 0) { grid.innerHTML = '<div class="none">見つかりませんでした</div>'; return; }
+    for (const e of list) {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = e;
+      b.onclick = () => selectEmoji(e);
+      grid.appendChild(b);
+    }
+  }
+  function selectEmoji(e) {
+    selIcon = e;
+    $("iconCurrent").textContent = e;
+    $("emojiPanel").hidden = true;
+    $("emojiSearch").value = "";
+  }
+  $("pickBtn").onclick = () => {
+    const p = $("emojiPanel");
+    p.hidden = !p.hidden;
+    if (!p.hidden) { renderEmojiGrid(); $("emojiSearch").focus(); }
+  };
+  $("emojiSearch").addEventListener("input", renderEmojiGrid);
 
   function fillPeriod(period) {
     if (!period || period.type === "none") { $("period").value = "none"; }
@@ -569,6 +664,8 @@
     selIcon = ICONS[0];
     selColor = COLORS[0];
     $("emojiInput").value = "";
+    $("emojiSearch").value = "";
+    $("emojiPanel").hidden = true;
     buildPickers();
     $("addBtn").textContent = "＋ 追加する";
     $("cancelBtn").style.display = "none";
@@ -605,9 +702,17 @@
 
   populateCategorySelect();
   applyCategoryUI();
+  buildEmojiCats();
   $("start").value = todayStr();
   buildPickers();
   render();
+
+  // PWA: Service Worker 登録（オフライン起動・ホーム画面アプリ用）
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>

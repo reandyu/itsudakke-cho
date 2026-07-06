@@ -160,7 +160,18 @@
     box-shadow: 0 6px 18px rgba(20,90,130,0.08); touch-action: pan-y;
   }
   .item.expired { border-color: var(--danger); background: #fff2f3; }
+  .item.done { background: #f3f8f6; }
+  .item.done .iname { text-decoration: line-through; color: var(--muted); }
+  .item.done .avatar { filter: grayscale(0.4); opacity: .8; }
   .item.dragging { opacity: .9; box-shadow: 0 16px 30px rgba(20,90,130,0.20); }
+  .check-toggle {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; padding: 0;
+    border: 2px solid var(--border); background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 800; color: #fff; line-height: 1;
+  }
+  .check-toggle:hover { border-color: var(--ok); }
+  .check-toggle.checked { background: var(--ok); border-color: var(--ok); }
   .handle {
     cursor: grab; color: var(--muted); font-size: 18px; line-height: 1;
     padding: 4px 2px; touch-action: none; user-select: none; flex-shrink: 0;
@@ -228,6 +239,10 @@
       <div class="field" id="customWrap" style="display:none;">
         <label for="customDays">使用可能日数</label>
         <input type="number" id="customDays" min="1" placeholder="例: 45" value="30">
+      </div>
+      <div class="field" id="doneWrap" hidden>
+        <label for="doneDate">完了日（使い切った日・空欄にすると「使用中」に戻ります）</label>
+        <input type="date" id="doneDate">
       </div>
       <div class="field">
         <label>アイコン</label>
@@ -333,6 +348,9 @@
     if (!exp) return null;
     return Math.floor((exp - todayMid()) / 86400000);
   }
+  function daysBetween(aISO, bISO) {
+    return Math.floor((new Date(bISO + "T00:00:00") - new Date(aISO + "T00:00:00")) / 86400000);
+  }
   function periodLabel(p) {
     if (!p || p.type === "none") return "期限なし";
     if (p.type === "months") return `${p.value}ヶ月`;
@@ -373,12 +391,15 @@
 
   function sortForDisplay(items) {
     if (sortMode === "manual") return items;
+    const byDone = (a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0); // 完了は下へ
     if (sortMode === "recent") {
-      // 新しい順（日付の新しいものが上）
-      return items.slice().sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
+      // 新しい順（日付の新しいものが上）／完了は下
+      return items.slice().sort((a, b) => byDone(a, b) || (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
     }
-    // 期限が近い順: 期限切れ→まもなく→余裕→期限なし
+    // 期限が近い順: 期限切れ→まもなく→余裕→期限なし／完了は下
     return items.slice().sort((a, b) => {
+      const d = byDone(a, b);
+      if (d) return d;
       const ra = remainingDays(a), rb = remainingDays(b);
       const va = (ra === null) ? Infinity : ra;
       const vb = (rb === null) ? Infinity : rb;
@@ -427,7 +448,13 @@
 
       // カテゴリ別の表示・ステータス判定
       let pillText, pillColor, numText, numColor, unitText, sub, isExpired = false;
-      if (cat.hasPeriod) {
+      if (it.done) {
+        // 完了：開始日〜完了日の経過日数を表示
+        const used = Math.max(daysBetween(it.start, it.done), 0);
+        pillText = "完了"; pillColor = "#10b981";
+        numText = used.toLocaleString(); numColor = "#10b981"; unitText = "日間";
+        sub = `${cat.datePrefix} ${fmt(it.start)} 〜 完了 ${fmt(it.done)}`;
+      } else if (cat.hasPeriod) {
         const rem = remainingDays(it);
         const exp = expiryOf(it);
         if (rem === null) {
@@ -453,10 +480,11 @@
       }
 
       const el = document.createElement("div");
-      el.className = "item" + (isExpired ? " expired" : "");
+      el.className = "item" + (isExpired ? " expired" : "") + (it.done ? " done" : "");
       el.dataset.id = it.id;
-      el.style.borderLeftColor = isExpired ? "#f87171" : color;
+      el.style.borderLeftColor = it.done ? "#10b981" : (isExpired ? "#f87171" : color);
       el.innerHTML = `
+        <button class="check-toggle${it.done ? " checked" : ""}" title="${it.done ? "使用中に戻す" : "完了にする"}">${it.done ? "✓" : ""}</button>
         <div class="handle" title="ドラッグで並び替え">⋮⋮</div>
         <div class="avatar"></div>
         <div class="info">
@@ -488,6 +516,7 @@
       numEl.textContent = numText;
       numEl.style.color = numColor;
       el.querySelector(".unit").textContent = unitText;
+      el.querySelector(".check-toggle").onclick = () => toggleDone(it.id);
       el.querySelector(".edit").onclick = () => startEdit(it.id);
       el.querySelector(".del").onclick = () => removeItem(it.id);
 
@@ -503,6 +532,16 @@
 
   function removeItem(id) {
     saveItems(loadItems().filter(x => x.id !== id));
+    render();
+  }
+
+  function toggleDone(id) {
+    const items = loadItems();
+    const it = items.find(x => x.id === id);
+    if (!it) return;
+    if (it.done) delete it.done;         // 使用中に戻す
+    else it.done = todayStr();           // 今日を完了日として記録
+    saveItems(items);
     render();
   }
 
@@ -648,6 +687,8 @@
     selIcon = it.icon || ICONS[0];
     selColor = it.color || COLORS[0];
     buildPickers();
+    $("doneWrap").hidden = false;
+    $("doneDate").value = it.done || "";
     $("addBtn").textContent = "✓ 保存する";
     $("cancelBtn").style.display = "block";
     document.body.classList.add("editing");
@@ -666,6 +707,8 @@
     $("emojiInput").value = "";
     $("emojiSearch").value = "";
     $("emojiPanel").hidden = true;
+    $("doneWrap").hidden = true;
+    $("doneDate").value = "";
     buildPickers();
     $("addBtn").textContent = "＋ 追加する";
     $("cancelBtn").style.display = "none";
@@ -681,7 +724,11 @@
     const items = loadItems();
     if (editingId) {
       const it = items.find(x => x.id === editingId);
-      if (it) Object.assign(it, { name, start, cat: $("category").value, period: currentPeriod(), icon: selIcon, color: selColor });
+      if (it) {
+        Object.assign(it, { name, start, cat: $("category").value, period: currentPeriod(), icon: selIcon, color: selColor });
+        const dv = $("doneDate").value;
+        if (dv) it.done = dv; else delete it.done;
+      }
       saveItems(items);
       exitEdit();
     } else {

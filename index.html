@@ -226,6 +226,7 @@
         <div id="periodWrap">
           <label for="period">使用可能期間</label>
           <select id="period">
+            <option value="none">期限なし</option>
             <option value="m6">6ヶ月</option>
             <option value="m12">12ヶ月</option>
             <option value="m1">1ヶ月</option>
@@ -233,7 +234,6 @@
             <option value="m18">18ヶ月</option>
             <option value="m24">24ヶ月</option>
             <option value="custom">日数を指定…</option>
-            <option value="none">期限なし（経過のみ）</option>
           </select>
         </div>
       </div>
@@ -727,7 +727,7 @@
     $("category").value = "goods";
     $("name").value = "";
     $("start").value = todayStr();
-    $("period").value = "m6";
+    $("period").value = "none";
     applyCategoryUI();
     selIcon = ICONS[0];
     selColor = COLORS[0];

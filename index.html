@@ -331,7 +331,8 @@
 
   // カテゴリ定義。hasPeriod=false のカテゴリは「期限なし＝経過（◯日前）」で管理
   const CATS = [
-    { id: "goods",  label: "コスメ・日用品", emoji: "🧴", defaultIcon: "🧴", color: "#38bdf8", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 日焼け止め、化粧水、歯ブラシ" },
+    { id: "cosme",  label: "コスメ",   emoji: "💄", defaultIcon: "💄", color: "#a78bfa", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 化粧水、日焼け止め、マスカラ" },
+    { id: "daily",  label: "日用品",   emoji: "🧴", defaultIcon: "🧴", color: "#38bdf8", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 歯ブラシ、洗剤、シャンプー" },
     { id: "people", label: "会った人",       emoji: "🧑‍🤝‍🧑", defaultIcon: "🧑", color: "#f472b6", hasPeriod: false, datePrefix: "会った日", dateLabel: "会った日",           namePh: "例: 田中さん、家族と食事" },
     { id: "did",    label: "やったこと",     emoji: "✅", defaultIcon: "✅", color: "#34d399", hasPeriod: false, datePrefix: "やった日", dateLabel: "やった日",           namePh: "例: 美容院、ジム、歯医者" },
     { id: "other",  label: "その他",         emoji: "📌", defaultIcon: "📌", color: "#fbbf24", hasPeriod: false, datePrefix: "日付",   dateLabel: "日付",               namePh: "例: 好きなことを記録" },
@@ -447,7 +448,7 @@
     const items = loadItems();
     const chips = [{ id: "all", label: "すべて", emoji: "🗂" }].concat(CATS);
     chips.forEach(c => {
-      const count = (c.id === "all") ? items.length : items.filter(it => (it.cat || "goods") === c.id).length;
+      const count = (c.id === "all") ? items.length : items.filter(it => (it.cat || "cosme") === c.id).length;
       const b = document.createElement("button");
       b.className = "chip" + (filterCat === c.id ? " active" : "");
       b.textContent = `${c.emoji} ${c.label}` + (count ? ` (${count})` : "");
@@ -461,7 +462,7 @@
     let items = loadItems();
     const stats = nameStats(items);
     const total = items.length;
-    if (filterCat !== "all") items = items.filter(it => (it.cat || "goods") === filterCat);
+    if (filterCat !== "all") items = items.filter(it => (it.cat || "cosme") === filterCat);
     items = sortForDisplay(items);
     $("segExpiry").classList.toggle("active", sortMode === "expiry");
     $("segRecent").classList.toggle("active", sortMode === "recent");
@@ -477,7 +478,7 @@
     }
 
     for (const it of items) {
-      const cat = catOf(it.cat || "goods");
+      const cat = catOf(it.cat || "cosme");
       const color = it.color || COLORS[0];
       const icon = it.icon || ICONS[0];
       const elapsed = elapsedDays(it.start);
@@ -728,7 +729,7 @@
     const it = loadItems().find(x => x.id === id);
     if (!it) return;
     editingId = id;
-    $("category").value = it.cat || "goods";
+    $("category").value = it.cat || "cosme";
     $("name").value = it.name || "";
     $("start").value = it.start;
     fillPeriod(it.period);
@@ -746,7 +747,7 @@
 
   function exitEdit() {
     editingId = null;
-    $("category").value = "goods";
+    $("category").value = "cosme";
     $("name").value = "";
     $("start").value = todayStr();
     $("period").value = "none";
@@ -795,6 +796,16 @@
   document.querySelectorAll(".seg button").forEach(b => {
     b.onclick = () => { sortMode = b.dataset.mode; localStorage.setItem(MODE_KEY, sortMode); render(); };
   });
+
+  // 旧「コスメ・日用品」(cat=goods/未設定) を「コスメ」へ一度だけ移行
+  (function migrateCats() {
+    const items = loadItems();
+    let changed = false;
+    for (const it of items) {
+      if (!it.cat || it.cat === "goods") { it.cat = "cosme"; changed = true; }
+    }
+    if (changed) saveItems(items);
+  })();
 
   populateCategorySelect();
   applyCategoryUI();

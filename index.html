@@ -81,7 +81,10 @@
     transition: border-color .15s, box-shadow .15s, background .15s;
   }
   input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
-  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
+  /* iOS Safari で日付欄が枠からはみ出すのを防ぐ（ネイティブ表示を無効化して width:100% を効かせる） */
+  input[type="date"] { -webkit-appearance: none; appearance: none; max-width: 100%; text-align: left; }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .55; margin-left: auto; }
   select { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
   .picker { display: flex; flex-wrap: wrap; gap: 7px; }

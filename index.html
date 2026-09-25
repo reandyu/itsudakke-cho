@@ -16,53 +16,49 @@
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
   :root {
-    --bg: #eef6fb;
+    --bg: #f1f6f5;
     --card: #ffffff;
-    --accent: #38bdf8;
-    --accent2: #2dd4bf;
-    --text: #20384a;
-    --muted: #7e95a4;
-    --border: #e4edf3;
-    --input: #f5f8fb;
-    --danger: #f26d78;
-    --ok: #10b981;
-    --warn: #f2a83a;
+    --accent: #2a9d8f;      /* 落ち着いたブルーグリーン */
+    --accent-d: #218577;    /* 濃いめ（hover/active） */
+    --accent2: #2a9d8f;
+    --text: #22403c;
+    --muted: #6b8480;
+    --border: #e4ecea;
+    --input: #f6f9f8;
+    --danger: #d9564f;
+    --ok: #2a9d8f;
+    --warn: #c98a1e;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { background: #dcf5f3; }
+  html { background: #eef4f3; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
-    background: linear-gradient(155deg, #d3edff 0%, #d9f9ef 55%, #ede0ff 100%) no-repeat;
+    background: linear-gradient(180deg, #f4f8f7 0%, #eef4f3 100%) no-repeat;
     background-size: cover;
     color: var(--text);
     min-height: 100vh;
     padding: 24px 16px 48px;
   }
   .wrap { max-width: 480px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 24px; }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; padding: 2px; }
   .logo {
-    width: 58px; height: 58px; margin: 0 auto 12px; border-radius: 17px;
-    background: linear-gradient(135deg, #38bdf8, #2dd4bf);
+    width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+    background: var(--accent);
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 10px 22px rgba(45,190,210,0.40);
   }
+  .brand-text { min-width: 0; }
   h1 {
-    font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", -apple-system, sans-serif;
-    font-size: 31px; font-weight: 800; letter-spacing: .06em;
-    background: linear-gradient(100deg, #22d3ee, #38bdf8 48%, #a78bfa);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 2px 5px rgba(56,189,248,0.22));
+    font-size: 22px; font-weight: 800; letter-spacing: -0.01em; color: #1e2b4d; line-height: 1.15;
   }
-  .subtitle { color: var(--muted); font-size: 12.5px; margin-top: 9px; letter-spacing: .03em; }
+  .subtitle { color: var(--muted); font-size: 11.5px; margin-top: 3px; letter-spacing: .01em; line-height: 1.45; }
 
   .add-card {
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 22px 20px;
+    padding: 20px 18px;
     margin-bottom: 20px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 1px 2px rgba(20,70,100,0.05), 0 8px 20px rgba(20,70,100,0.06), 0 22px 46px rgba(20,70,100,0.05);
+    box-shadow: 0 1px 2px rgba(30,60,58,0.04);
   }
   .field { margin-bottom: 14px; }
   .field.two { display: flex; gap: 11px; }
@@ -77,10 +73,9 @@
     color: var(--text);
     font-size: 15px;
     font-family: inherit;
-    box-shadow: inset 0 1px 2px rgba(20,70,100,0.05);
     transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: inset 0 1px 1px rgba(20,70,100,0.02), 0 0 0 3px rgba(56,189,248,0.18); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
   input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
   select { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
@@ -133,21 +128,20 @@
 
   .btn {
     width: 100%; padding: 13px;
-    background: linear-gradient(120deg, #22d3ee, #3b82f6 55%, #a855f7);
-    border: none; border-radius: 13px; color: #fff;
-    font-size: 15.5px; font-weight: 800; letter-spacing: .03em; cursor: pointer; margin-top: 6px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 24px rgba(59,130,246,0.38);
-    transition: transform .08s, box-shadow .15s, filter .15s;
+    background: var(--accent);
+    border: none; border-radius: 11px; color: #fff;
+    font-size: 15px; font-weight: 700; letter-spacing: .02em; cursor: pointer; margin-top: 8px;
+    transition: background .15s, transform .08s;
   }
-  .btn:hover { filter: saturate(1.08) brightness(1.03); }
-  .btn:active { transform: translateY(1px) scale(0.995); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 5px 14px rgba(59,130,246,0.32); }
+  .btn:hover { background: var(--accent-d); }
+  .btn:active { transform: translateY(1px); }
   .btn-ghost {
     width: 100%; padding: 11px; margin-top: 9px;
     background: transparent; border: 1px solid var(--border); border-radius: 12px;
     color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
   }
   .btn-ghost:active { transform: scale(0.99); }
-  .editing .add-card { box-shadow: 0 0 0 2px var(--accent), 0 12px 36px rgba(20,70,100,0.10); }
+  .editing .add-card { box-shadow: 0 0 0 2px var(--accent); }
 
   .toolbar {
     display: flex; align-items: center; justify-content: flex-end;
@@ -158,30 +152,29 @@
     background: transparent; border: none; color: var(--muted);
     font-size: 12px; padding: 7px 13px; cursor: pointer; font-family: inherit; transition: background .12s, color .12s, transform .1s;
   }
-  .seg button:active { transform: scale(0.95); }
-  .seg button.active { background: linear-gradient(120deg, #38bdf8, #6366f1); color: #fff; font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 10px rgba(80,120,240,0.45); }
+  .seg button:active { transform: scale(0.96); }
+  .seg button.active { background: var(--accent); color: #fff; font-weight: 700; }
   .filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
   .chip {
     border: 1px solid var(--border); background: var(--card); color: var(--muted);
     font-size: 12px; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
     transition: background .12s, color .12s, border-color .12s, transform .1s;
   }
-  .chip:active { transform: scale(0.96); }
-  .chip.active { background: linear-gradient(120deg, #38bdf8, #6366f1); color: #fff; border-color: transparent; font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 12px rgba(80,120,240,0.38); }
+  .chip:active { transform: scale(0.97); }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
 
   .list { display: flex; flex-direction: column; gap: 12px; }
   .item {
     background: var(--card); border: 1px solid var(--border);
-    border-left: 6px solid var(--accent); border-radius: 18px;
-    padding: 15px 17px; display: flex; align-items: center; gap: 13px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(20,70,100,0.05), 0 6px 16px rgba(20,70,100,0.06), 0 18px 40px rgba(20,70,100,0.05); touch-action: pan-y;
-    transition: transform .16s ease, box-shadow .16s ease;
+    border-left: 3px solid var(--accent); border-radius: 14px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 2px rgba(30,60,58,0.04); touch-action: pan-y;
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
   @media (hover: hover) {
-    .item:hover { transform: translateY(-2px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(20,70,100,0.06), 0 12px 24px rgba(20,70,100,0.10), 0 28px 56px rgba(20,70,100,0.07); }
+    .item:hover { border-color: #cdddd8; box-shadow: 0 2px 8px rgba(30,60,58,0.07); }
   }
-  .item.expired { border-color: var(--danger); background: #fff2f3; }
+  .item.expired { border-color: var(--danger); border-left-color: var(--danger); background: #fdf5f4; }
   .item.done { background: #f3f8f6; }
   .item.done .iname { text-decoration: line-through; color: var(--muted); }
   .item.done .avatar { filter: grayscale(0.4); opacity: .8; }
@@ -195,39 +188,36 @@
   }
   .check-toggle:hover { border-color: var(--ok); }
   .check-toggle:active { transform: scale(0.9); }
-  .check-toggle.checked { background: var(--ok); border-color: var(--ok); box-shadow: 0 2px 9px rgba(16,185,129,0.5); }
+  .check-toggle.checked { background: var(--ok); border-color: var(--ok); }
   .handle {
     cursor: grab; color: var(--muted); font-size: 18px; line-height: 1;
     padding: 4px 2px; touch-action: none; user-select: none; flex-shrink: 0;
   }
   .handle:active { cursor: grabbing; }
   .avatar {
-    width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 2px rgba(20,70,100,0.05);
+    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 21px;
   }
   .item .info { flex: 1; min-width: 0; }
   .nameline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .item .iname { font-size: 15px; font-weight: 600; letter-spacing: .01em; word-break: break-word; }
   .pill {
-    font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-    white-space: nowrap; letter-spacing: .04em;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(20,40,60,0.14);
+    font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 7px;
+    white-space: nowrap; letter-spacing: .02em;
   }
   .item .sub { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.55; }
   .item .sub .stat { color: var(--accent); font-weight: 600; }
   .refill {
-    margin-top: 9px; padding: 7px 13px; font-size: 12px; font-weight: 700;
-    border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
-    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06323f;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(45,190,210,0.32);
-    transition: transform .1s, box-shadow .15s, filter .15s;
+    margin-top: 9px; padding: 8px 13px; font-size: 12px; font-weight: 700;
+    border: none; border-radius: 9px; cursor: pointer; font-family: inherit;
+    background: var(--accent); color: #fff;
+    transition: background .15s, transform .1s;
   }
-  .refill:hover { filter: saturate(1.08) brightness(1.03); }
-  .refill:active { transform: scale(0.97); }
+  .refill:hover { background: var(--accent-d); }
+  .refill:active { transform: scale(0.98); }
   .item .count { text-align: right; flex-shrink: 0; }
-  .item .num { font-size: 34px; font-weight: 800; line-height: .95; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-  .item .unit { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-top: 4px; letter-spacing: .06em; }
+  .item .num { font-size: 27px; font-weight: 700; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+  .item .unit { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-top: 4px; letter-spacing: .04em; }
   .actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
   .edit, .del {
     background: none; border: none; color: var(--muted);
@@ -244,7 +234,7 @@
   <div class="wrap">
     <header>
       <div class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="4.5" width="18" height="16" rx="3"/>
           <line x1="3" y1="9.2" x2="21" y2="9.2"/>
           <line x1="8" y1="2.5" x2="8" y2="5.5"/>
@@ -252,8 +242,10 @@
           <path d="M8.4 14.6l2.3 2.3 4.4-4.7"/>
         </svg>
       </div>
-      <h1>いつだっけ帳</h1>
-      <p class="subtitle">コスメ・日用品の期限も、会った人・やったことも、ゆるっと記録 ✨</p>
+      <div class="brand-text">
+        <h1>いつだっけ帳</h1>
+        <p class="subtitle">使用期限も、できごとも、まとめて記録</p>
+      </div>
     </header>
 
     <div class="add-card">
@@ -336,7 +328,7 @@
   const $ = (id) => document.getElementById(id);
 
   const ICONS = ["🧴","💄","🧼","🪥","🧻","🧷","💊","🧃","☕","🌿","🍼","📦"];
-  const COLORS = ["#38bdf8","#818cf8","#34d399","#fbbf24","#f472b6","#f87171","#2dd4bf","#a78bfa"];
+  const COLORS = ["#e08aa4","#5b93c9","#4fb3a4","#6fae86","#d3a24e","#d98a76","#7f9cc4","#9a8fc0"];
   const SOON = 30; // 期限「まもなく」判定（日）
 
   // 絵文字ピッカー用データ（カテゴリ別。各要素は [絵文字, 検索キーワード]）
@@ -356,11 +348,11 @@
 
   // カテゴリ定義。hasPeriod=false のカテゴリは「期限なし＝経過（◯日前）」で管理
   const CATS = [
-    { id: "cosme",  label: "コスメ",   emoji: "💄", defaultIcon: "💄", color: "#a78bfa", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 化粧水、日焼け止め、マスカラ" },
-    { id: "daily",  label: "日用品",   emoji: "🧴", defaultIcon: "🧴", color: "#38bdf8", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 歯ブラシ、洗剤、シャンプー" },
-    { id: "people", label: "会った人",       emoji: "🧑‍🤝‍🧑", defaultIcon: "🧑", color: "#f472b6", hasPeriod: false, datePrefix: "会った日", dateLabel: "会った日",           namePh: "例: 田中さん、家族と食事" },
-    { id: "did",    label: "やったこと",     emoji: "✅", defaultIcon: "✅", color: "#34d399", hasPeriod: false, datePrefix: "やった日", dateLabel: "やった日",           namePh: "例: 美容院、ジム、歯医者" },
-    { id: "other",  label: "その他",         emoji: "📌", defaultIcon: "📌", color: "#fbbf24", hasPeriod: false, datePrefix: "日付",   dateLabel: "日付",               namePh: "例: 好きなことを記録" },
+    { id: "cosme",  label: "コスメ",   emoji: "💄", defaultIcon: "💄", color: "#e08aa4", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 化粧水、日焼け止め、マスカラ" },
+    { id: "daily",  label: "日用品",   emoji: "🧴", defaultIcon: "🧴", color: "#5b93c9", hasPeriod: true,  datePrefix: "開封",   dateLabel: "開封日 / 使用開始日", namePh: "例: 歯ブラシ、洗剤、シャンプー" },
+    { id: "people", label: "会った人",       emoji: "🧑‍🤝‍🧑", defaultIcon: "🧑", color: "#4fb3a4", hasPeriod: false, datePrefix: "会った日", dateLabel: "会った日",           namePh: "例: 田中さん、家族と食事" },
+    { id: "did",    label: "やったこと",     emoji: "✅", defaultIcon: "✅", color: "#6fae86", hasPeriod: false, datePrefix: "やった日", dateLabel: "やった日",           namePh: "例: 美容院、ジム、歯医者" },
+    { id: "other",  label: "その他",         emoji: "📌", defaultIcon: "📌", color: "#d3a24e", hasPeriod: false, datePrefix: "日付",   dateLabel: "日付",               namePh: "例: 好きなことを記録" },
   ];
   function catOf(id) { return CATS.find(c => c.id === id) || CATS[0]; }
 
@@ -517,34 +509,35 @@
 
       // カテゴリ別の表示・ステータス判定
       let pillText, pillColor, numText, numColor, unitText, sub, isExpired = false;
+      const TEAL = "#2a9d8f", RED = "#d9564f", AMBER = "#c98a1e", GREY = "#6b8480";
       if (it.done) {
         // 完了：開始日〜完了日の経過日数を表示
         const used = Math.max(daysBetween(it.start, it.done), 0);
-        pillText = "完了"; pillColor = "#10b981";
-        numText = used.toLocaleString(); numColor = "#10b981"; unitText = "日間";
+        pillText = "完了"; pillColor = TEAL;
+        numText = used.toLocaleString(); numColor = TEAL; unitText = "日間";
         sub = `${cat.datePrefix} ${fmt(it.start)} 〜 完了 ${fmt(it.done)}`;
       } else if (cat.hasPeriod) {
         const rem = remainingDays(it);
         const exp = expiryOf(it);
         if (rem === null) {
-          pillText = "使用中"; pillColor = "#34d399";
-          numText = Math.max(elapsed, 0).toLocaleString(); numColor = color; unitText = "日経過";
+          pillText = "使用中"; pillColor = TEAL;
+          numText = Math.max(elapsed, 0).toLocaleString(); numColor = TEAL; unitText = "日経過";
         } else if (rem < 0) {
           isExpired = true;
-          pillText = "期限切れ"; pillColor = "#f87171";
-          numText = Math.abs(rem).toLocaleString(); numColor = "#f87171"; unitText = "日超過";
+          pillText = "期限切れ"; pillColor = RED;
+          numText = Math.abs(rem).toLocaleString(); numColor = RED; unitText = "日超過";
         } else if (rem <= SOON) {
-          pillText = "まもなく期限"; pillColor = "#fbbf24";
-          numText = rem.toLocaleString(); numColor = "#fbbf24"; unitText = "日で期限";
+          pillText = "まもなく期限"; pillColor = AMBER;
+          numText = rem.toLocaleString(); numColor = AMBER; unitText = "日で期限";
         } else {
-          pillText = "使用中"; pillColor = "#34d399";
-          numText = rem.toLocaleString(); numColor = "#34d399"; unitText = "日で期限";
+          pillText = "使用中"; pillColor = TEAL;
+          numText = rem.toLocaleString(); numColor = TEAL; unitText = "日で期限";
         }
         sub = `${cat.datePrefix} ${fmt(it.start)}（${elapsed}日経過）`;
         if (exp) sub += `<br>期限 ${fmt(exp)}・使用期間 ${periodLabel(it.period)}`;
       } else {
-        pillText = cat.label; pillColor = color;
-        numText = Math.max(elapsed, 0).toLocaleString(); numColor = color; unitText = "日ぶり";
+        pillText = cat.label; pillColor = GREY;
+        numText = Math.max(elapsed, 0).toLocaleString(); numColor = TEAL; unitText = "日ぶり";
         sub = `${cat.datePrefix} ${fmt(it.start)}`;
       }
 
@@ -565,7 +558,7 @@
       const el = document.createElement("div");
       el.className = "item" + (isExpired ? " expired" : "") + (it.done ? " done" : "");
       el.dataset.id = it.id;
-      el.style.borderLeftColor = it.done ? "#10b981" : (isExpired ? "#f87171" : color);
+      el.style.borderLeftColor = it.done ? "#2a9d8f" : (isExpired ? "#d9564f" : color);
       el.innerHTML = `
         <button class="check-toggle${it.done ? " checked" : ""}" title="${it.done ? "使用中に戻す" : "完了にする"}">${it.done ? "✓" : ""}</button>
         <div class="handle" title="ドラッグで並び替え">⋮⋮</div>
@@ -589,12 +582,12 @@
 
       const av = el.querySelector(".avatar");
       av.textContent = icon;
-      av.style.background = hexA(color, 0.24);
+      av.style.background = hexA(color, 0.13);
       el.querySelector(".iname").textContent = it.name || "(名称なし)";
       const pill = el.querySelector(".pill");
       pill.textContent = pillText;
-      pill.style.color = textOn(pillColor);
-      pill.style.background = pillColor;
+      pill.style.color = pillColor;
+      pill.style.background = hexA(pillColor, 0.14);
       el.querySelector(".sub").innerHTML = sub;
       const numEl = el.querySelector(".num");
       numEl.textContent = numText;

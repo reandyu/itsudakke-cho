@@ -62,10 +62,15 @@
   }
   .field { margin-bottom: 14px; }
   .field.two { display: flex; gap: 11px; }
-  .field.two > div { flex: 1; }
+  .field.two > div { flex: 1 1 0; min-width: 0; }
+  /* 狭い画面では日付と期間を縦並びにして重なりを防ぐ */
+  @media (max-width: 430px) {
+    .field.two { flex-direction: column; gap: 14px; }
+  }
   label { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 7px; letter-spacing: .02em; }
   input[type="text"], input[type="date"], input[type="number"], select {
     width: 100%;
+    min-width: 0;
     padding: 12px 13px;
     background: var(--input);
     border: 1px solid var(--border);

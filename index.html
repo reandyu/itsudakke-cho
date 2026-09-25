@@ -29,10 +29,10 @@
     --warn: #f2a83a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { background: #f2f9fc; }
+  html { background: #dcf5f3; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Segoe UI", sans-serif;
-    background: linear-gradient(170deg, #eef6fc 0%, #eff8f6 60%, #f4fafd 100%) no-repeat;
+    background: linear-gradient(155deg, #d3edff 0%, #d9f9ef 55%, #ede0ff 100%) no-repeat;
     background-size: cover;
     color: var(--text);
     min-height: 100vh;
@@ -62,7 +62,7 @@
     border-radius: 20px;
     padding: 22px 20px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(20,70,100,0.04), 0 12px 36px rgba(20,70,100,0.07);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 1px 2px rgba(20,70,100,0.05), 0 8px 20px rgba(20,70,100,0.06), 0 22px 46px rgba(20,70,100,0.05);
   }
   .field { margin-bottom: 14px; }
   .field.two { display: flex; gap: 11px; }
@@ -77,8 +77,10 @@
     color: var(--text);
     font-size: 15px;
     font-family: inherit;
+    box-shadow: inset 0 1px 2px rgba(20,70,100,0.05);
+    transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.13); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: inset 0 1px 1px rgba(20,70,100,0.02), 0 0 0 3px rgba(56,189,248,0.18); }
   input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .6; }
   select { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
@@ -131,13 +133,14 @@
 
   .btn {
     width: 100%; padding: 13px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border: none; border-radius: 12px; color: #06323f;
-    font-size: 15px; font-weight: 700; letter-spacing: .02em; cursor: pointer; margin-top: 6px;
-    box-shadow: 0 8px 18px rgba(45,190,210,0.28);
-    transition: transform .08s, box-shadow .15s;
+    background: linear-gradient(120deg, #22d3ee, #3b82f6 55%, #a855f7);
+    border: none; border-radius: 13px; color: #fff;
+    font-size: 15.5px; font-weight: 800; letter-spacing: .03em; cursor: pointer; margin-top: 6px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 24px rgba(59,130,246,0.38);
+    transition: transform .08s, box-shadow .15s, filter .15s;
   }
-  .btn:active { transform: translateY(1px) scale(0.995); box-shadow: 0 4px 12px rgba(45,190,210,0.24); }
+  .btn:hover { filter: saturate(1.08) brightness(1.03); }
+  .btn:active { transform: translateY(1px) scale(0.995); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 5px 14px rgba(59,130,246,0.32); }
   .btn-ghost {
     width: 100%; padding: 11px; margin-top: 9px;
     background: transparent; border: 1px solid var(--border); border-radius: 12px;
@@ -153,23 +156,30 @@
   .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--card); }
   .seg button {
     background: transparent; border: none; color: var(--muted);
-    font-size: 12px; padding: 7px 13px; cursor: pointer; font-family: inherit; transition: background .12s, color .12s;
+    font-size: 12px; padding: 7px 13px; cursor: pointer; font-family: inherit; transition: background .12s, color .12s, transform .1s;
   }
-  .seg button.active { background: var(--accent); color: #06323f; font-weight: 700; }
+  .seg button:active { transform: scale(0.95); }
+  .seg button.active { background: linear-gradient(120deg, #38bdf8, #6366f1); color: #fff; font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 10px rgba(80,120,240,0.45); }
   .filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
   .chip {
     border: 1px solid var(--border); background: var(--card); color: var(--muted);
     font-size: 12px; padding: 7px 12px; border-radius: 999px; cursor: pointer; font-family: inherit;
-    transition: background .12s, color .12s, border-color .12s;
+    transition: background .12s, color .12s, border-color .12s, transform .1s;
   }
-  .chip.active { background: var(--accent); color: #06323f; border-color: var(--accent); font-weight: 700; }
+  .chip:active { transform: scale(0.96); }
+  .chip.active { background: linear-gradient(120deg, #38bdf8, #6366f1); color: #fff; border-color: transparent; font-weight: 800; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 3px 12px rgba(80,120,240,0.38); }
 
   .list { display: flex; flex-direction: column; gap: 12px; }
   .item {
     background: var(--card); border: 1px solid var(--border);
-    border-left: 4px solid var(--accent); border-radius: 16px;
+    border-left: 6px solid var(--accent); border-radius: 18px;
     padding: 15px 17px; display: flex; align-items: center; gap: 13px;
-    box-shadow: 0 1px 2px rgba(20,70,100,0.03), 0 8px 22px rgba(20,70,100,0.06); touch-action: pan-y;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 1px 2px rgba(20,70,100,0.05), 0 6px 16px rgba(20,70,100,0.06), 0 18px 40px rgba(20,70,100,0.05); touch-action: pan-y;
+    transition: transform .16s ease, box-shadow .16s ease;
+  }
+  @media (hover: hover) {
+    .item:hover { transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(20,70,100,0.06), 0 12px 24px rgba(20,70,100,0.10), 0 28px 56px rgba(20,70,100,0.07); }
   }
   .item.expired { border-color: var(--danger); background: #fff2f3; }
   .item.done { background: #f3f8f6; }
@@ -181,24 +191,28 @@
     border: 2px solid var(--border); background: transparent; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     font-size: 15px; font-weight: 800; color: #fff; line-height: 1;
+    transition: background .15s, border-color .15s, box-shadow .15s, transform .1s;
   }
   .check-toggle:hover { border-color: var(--ok); }
-  .check-toggle.checked { background: var(--ok); border-color: var(--ok); }
+  .check-toggle:active { transform: scale(0.9); }
+  .check-toggle.checked { background: var(--ok); border-color: var(--ok); box-shadow: 0 2px 9px rgba(16,185,129,0.5); }
   .handle {
     cursor: grab; color: var(--muted); font-size: 18px; line-height: 1;
     padding: 4px 2px; touch-action: none; user-select: none; flex-shrink: 0;
   }
   .handle:active { cursor: grabbing; }
   .avatar {
-    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 21px;
+    width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), inset 0 -1px 2px rgba(20,70,100,0.05);
   }
   .item .info { flex: 1; min-width: 0; }
   .nameline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
   .item .iname { font-size: 15px; font-weight: 600; letter-spacing: .01em; word-break: break-word; }
   .pill {
-    font-size: 10px; font-weight: 700; padding: 2.5px 8px; border-radius: 999px;
-    white-space: nowrap; letter-spacing: .03em;
+    font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    white-space: nowrap; letter-spacing: .04em;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 1px 2px rgba(20,40,60,0.14);
   }
   .item .sub { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.55; }
   .item .sub .stat { color: var(--accent); font-weight: 600; }
@@ -206,19 +220,23 @@
     margin-top: 9px; padding: 7px 13px; font-size: 12px; font-weight: 700;
     border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
     background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #06323f;
-    box-shadow: 0 4px 10px rgba(45,190,210,0.25);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 4px 12px rgba(45,190,210,0.32);
+    transition: transform .1s, box-shadow .15s, filter .15s;
   }
-  .refill:active { transform: scale(0.98); }
+  .refill:hover { filter: saturate(1.08) brightness(1.03); }
+  .refill:active { transform: scale(0.97); }
   .item .count { text-align: right; flex-shrink: 0; }
-  .item .num { font-size: 31px; font-weight: 800; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-  .item .unit { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: .02em; }
+  .item .num { font-size: 34px; font-weight: 800; line-height: .95; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .item .unit { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-top: 4px; letter-spacing: .06em; }
   .actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
   .edit, .del {
     background: none; border: none; color: var(--muted);
     font-size: 16px; cursor: pointer; line-height: 1; padding: 4px;
+    transition: color .12s, transform .1s;
   }
   .edit:hover { color: var(--accent); }
   .del:hover { color: var(--danger); }
+  .edit:active, .del:active { transform: scale(0.88); }
   .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0; }
 </style>
 </head>
@@ -300,10 +318,10 @@
     <div class="filters" id="filters"></div>
 
     <div class="toolbar">
-      <span>並び順</span>
       <div class="seg">
         <button data-mode="expiry" id="segExpiry">期限順</button>
         <button data-mode="recent" id="segRecent">新しい順</button>
+        <button data-mode="old" id="segOld">古い順</button>
         <button data-mode="manual" id="segManual">手動</button>
       </div>
     </div>
@@ -403,6 +421,12 @@
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
   }
+  // 背景色に対して読みやすい文字色（明るい色→濃色、暗い色→白）
+  function textOn(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const L = 0.299 * ((n>>16)&255) + 0.587 * ((n>>8)&255) + 0.114 * (n&255);
+    return L > 175 ? "#0f2e3d" : "#ffffff";
+  }
   // 入力文字列の先頭1絵文字（ZWJ結合・肌色などの結合文字対応）
   function firstEmoji(str) {
     str = (str || "").trim();
@@ -434,15 +458,16 @@
 
   function sortForDisplay(items) {
     if (sortMode === "manual") return items;
-    const byDone = (a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0); // 完了は下へ
     if (sortMode === "recent") {
-      // 新しい順（日付の新しいものが上）／完了は下
-      return items.slice().sort((a, b) => byDone(a, b) || (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
+      // 新しい順（開始日が新しいものが上）
+      return items.slice().sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
     }
-    // 期限が近い順: 期限切れ→まもなく→余裕→期限なし／完了は下
+    if (sortMode === "old") {
+      // 古い順（開始日が古いものが上）
+      return items.slice().sort((a, b) => (a.start > b.start ? 1 : a.start < b.start ? -1 : 0));
+    }
+    // 期限が近い順: 期限切れ→まもなく→余裕→期限なし（完了も混ぜて表示）
     return items.slice().sort((a, b) => {
-      const d = byDone(a, b);
-      if (d) return d;
       const ra = remainingDays(a), rb = remainingDays(b);
       const va = (ra === null) ? Infinity : ra;
       const vb = (rb === null) ? Infinity : rb;
@@ -472,6 +497,7 @@
     items = sortForDisplay(items);
     $("segExpiry").classList.toggle("active", sortMode === "expiry");
     $("segRecent").classList.toggle("active", sortMode === "recent");
+    $("segOld").classList.toggle("active", sortMode === "old");
     $("segManual").classList.toggle("active", sortMode === "manual");
 
     const list = $("list");
@@ -563,12 +589,12 @@
 
       const av = el.querySelector(".avatar");
       av.textContent = icon;
-      av.style.background = hexA(color, 0.18);
+      av.style.background = hexA(color, 0.24);
       el.querySelector(".iname").textContent = it.name || "(名称なし)";
       const pill = el.querySelector(".pill");
       pill.textContent = pillText;
-      pill.style.color = pillColor;
-      pill.style.background = hexA(pillColor, 0.16);
+      pill.style.color = textOn(pillColor);
+      pill.style.background = pillColor;
       el.querySelector(".sub").innerHTML = sub;
       const numEl = el.querySelector(".num");
       numEl.textContent = numText;

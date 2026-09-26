@@ -203,17 +203,12 @@
   }
   .handle:active { cursor: grabbing; }
   .avatar {
-    width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 21px;
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
   }
-  .item .info { flex: 1; min-width: 0; }
-  .nameline { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
-  .item .iname { font-size: 15px; font-weight: 600; letter-spacing: .01em; word-break: break-word; }
-  .pill {
-    font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 7px;
-    white-space: nowrap; letter-spacing: .02em;
-  }
-  .item .sub { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.55; }
+  .item .info { flex: 1 1 auto; min-width: 0; }
+  .item .iname { display: block; font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: .01em; overflow-wrap: anywhere; }
+  .item .sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
   .item .sub .stat { color: var(--accent); font-weight: 600; }
   .refill {
     margin-top: 9px; padding: 8px 13px; font-size: 12px; font-weight: 700;
@@ -223,13 +218,18 @@
   }
   .refill:hover { background: var(--accent-d); }
   .refill:active { transform: scale(0.98); }
-  .item .count { text-align: right; flex-shrink: 0; }
-  .item .num { font-size: 27px; font-weight: 700; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-  .item .unit { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-top: 4px; letter-spacing: .04em; }
+  .item .count {
+    display: flex; flex-direction: column; align-items: flex-end;
+    flex-shrink: 0; min-width: 56px; padding-left: 6px;
+  }
+  .count .status { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; line-height: 1; margin-bottom: 3px; }
+  .count .status[hidden] { display: none; }
+  .item .num { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .item .unit { font-size: 10.5px; font-weight: 600; color: var(--muted); margin-top: 3px; letter-spacing: .03em; white-space: nowrap; }
   .actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
   .edit, .del {
-    background: none; border: none; color: var(--muted);
-    font-size: 16px; cursor: pointer; line-height: 1; padding: 4px;
+    background: none; border: none; color: #aebfba;
+    font-size: 15px; cursor: pointer; line-height: 1; padding: 4px;
     transition: color .12s, transform .1s;
   }
   .edit:hover { color: var(--accent); }
@@ -515,36 +515,32 @@
       const icon = it.icon || ICONS[0];
       const elapsed = elapsedDays(it.start);
 
-      // カテゴリ別の表示・ステータス判定
-      let pillText, pillColor, numText, numColor, unitText, sub, isExpired = false;
-      const TEAL = "#2a9d8f", RED = "#d9564f", AMBER = "#c98a1e", GREY = "#6b8480";
+      // 数字（主役）・単位・ステータス（特別な状態のときだけ小さく表示）
+      const TEAL = "#2a9d8f", RED = "#d9564f", AMBER = "#c98a1e";
+      let numText, numColor, unitText, sub, isExpired = false, statusText = "";
       if (it.done) {
-        // 完了：開始日〜完了日の経過日数を表示
+        // 完了：開始日〜完了日の経過日数
         const used = Math.max(daysBetween(it.start, it.done), 0);
-        pillText = "完了"; pillColor = TEAL;
+        statusText = "完了";
         numText = used.toLocaleString(); numColor = TEAL; unitText = "日間";
-        sub = `${cat.datePrefix} ${fmt(it.start)} 〜 完了 ${fmt(it.done)}`;
+        sub = `開封 ${fmt(it.start)} 〜 完了 ${fmt(it.done)}`;
       } else if (cat.hasPeriod) {
         const rem = remainingDays(it);
         const exp = expiryOf(it);
         if (rem === null) {
-          pillText = "使用中"; pillColor = TEAL;
           numText = Math.max(elapsed, 0).toLocaleString(); numColor = TEAL; unitText = "日経過";
         } else if (rem < 0) {
-          isExpired = true;
-          pillText = "期限切れ"; pillColor = RED;
+          isExpired = true; statusText = "期限切れ";
           numText = Math.abs(rem).toLocaleString(); numColor = RED; unitText = "日超過";
         } else if (rem <= SOON) {
-          pillText = "まもなく期限"; pillColor = AMBER;
+          statusText = "まもなく";
           numText = rem.toLocaleString(); numColor = AMBER; unitText = "日で期限";
         } else {
-          pillText = "使用中"; pillColor = TEAL;
           numText = rem.toLocaleString(); numColor = TEAL; unitText = "日で期限";
         }
-        sub = `${cat.datePrefix} ${fmt(it.start)}（${elapsed}日経過）`;
-        if (exp) sub += `<br>期限 ${fmt(exp)}・使用期間 ${periodLabel(it.period)}`;
+        sub = `開封 ${fmt(it.start)}`;
+        if (exp) sub += `・期限 ${fmt(exp)}`;
       } else {
-        pillText = cat.label; pillColor = GREY;
         numText = Math.max(elapsed, 0).toLocaleString(); numColor = TEAL; unitText = "日ぶり";
         sub = `${cat.datePrefix} ${fmt(it.start)}`;
       }
@@ -572,14 +568,12 @@
         <div class="handle" title="ドラッグで並び替え">⋮⋮</div>
         <div class="avatar"></div>
         <div class="info">
-          <div class="nameline">
-            <span class="iname"></span>
-            <span class="pill"></span>
-          </div>
+          <span class="iname"></span>
           <div class="sub"></div>
           <button class="refill" hidden>🔄 新しく使い始める</button>
         </div>
         <div class="count">
+          <div class="status" hidden></div>
           <div class="num"></div>
           <div class="unit"></div>
         </div>
@@ -592,10 +586,8 @@
       av.textContent = icon;
       av.style.background = hexA(color, 0.13);
       el.querySelector(".iname").textContent = it.name || "(名称なし)";
-      const pill = el.querySelector(".pill");
-      pill.textContent = pillText;
-      pill.style.color = pillColor;
-      pill.style.background = hexA(pillColor, 0.14);
+      const stEl = el.querySelector(".status");
+      if (statusText) { stEl.textContent = statusText; stEl.style.color = numColor; stEl.hidden = false; }
       el.querySelector(".sub").innerHTML = sub;
       const numEl = el.querySelector(".num");
       numEl.textContent = numText;

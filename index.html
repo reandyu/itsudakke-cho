@@ -247,6 +247,35 @@
   .del:hover { color: var(--danger); }
   .edit:active, .del:active { transform: scale(0.88); }
   .empty { text-align: center; color: var(--muted); font-size: 14px; padding: 30px 0; }
+
+  .backup { margin-top: 22px; text-align: center; }
+  .backup-toggle {
+    background: none; border: none; color: var(--muted); font-size: 12.5px;
+    cursor: pointer; font-family: inherit; text-decoration: underline; padding: 6px;
+  }
+  .backup-panel {
+    margin-top: 10px; text-align: left; background: var(--card);
+    border: 1px solid var(--border); border-radius: 14px; padding: 16px;
+    box-shadow: 0 1px 2px rgba(30,60,58,0.04);
+  }
+  .backup-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 0 0 8px; }
+  .backup-panel textarea {
+    width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 10px;
+    font-size: 12px; font-family: ui-monospace, Menlo, monospace; color: var(--text);
+    background: var(--input); margin-bottom: 10px; resize: vertical;
+  }
+  .backup-panel input {
+    width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px;
+    font-size: 15px; font-family: inherit; color: var(--text); background: var(--input); margin-bottom: 10px;
+  }
+  .backup-panel input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(42,157,143,0.15); }
+  .btn-sub {
+    width: 100%; padding: 11px; border: 1px solid var(--accent); background: transparent;
+    color: var(--accent); font-size: 14px; font-weight: 700; border-radius: 10px;
+    cursor: pointer; font-family: inherit; margin-bottom: 14px; transition: background .15s, color .15s;
+  }
+  .btn-sub:last-child { margin-bottom: 0; }
+  .btn-sub:active { background: var(--accent); color: #fff; }
 </style>
 </head>
 <body>
@@ -338,6 +367,35 @@
     </div>
 
     <div class="list" id="list"></div>
+
+    <div class="backup">
+      <button type="button" class="backup-toggle" id="backupToggle">🔐 バックアップ / データ移行</button>
+      <div class="backup-panel" id="backupPanel" hidden>
+        <p class="backup-note">データはこの端末のブラウザ内だけに保存されています。下の文字列をコピーして、メモアプリや自分宛てメール・別端末に保存しておくとバックアップになります。</p>
+        <button type="button" class="btn-sub" id="exportBtn">📋 今のデータをコピー（書き出し）</button>
+        <textarea id="exportArea" readonly rows="3" placeholder="「今のデータをコピー」を押すと、ここに書き出されます"></textarea>
+        <p class="backup-note">バックアップ文字列を貼り付けて読み込む（この端末のデータを上書きします）：</p>
+        <textarea id="importArea" rows="3" placeholder="ここにバックアップ文字列を貼り付け"></textarea>
+        <button type="button" class="btn-sub" id="importBtn">↩️ 貼り付けた内容を読み込む</button>
+      </div>
+    </div>
+
+    <div class="backup">
+      <button type="button" class="backup-toggle" id="syncToggle">☁️ クラウド同期（複数端末）</button>
+      <div class="backup-panel" id="syncPanel" hidden>
+        <div id="syncSignedOut">
+          <p class="backup-note">メールアドレスとパスワードでサインインすると、複数の端末で自動同期されます（初めてのメールは自動で新規登録）。</p>
+          <input type="email" id="syncEmail" placeholder="メールアドレス" inputmode="email" autocomplete="email">
+          <input type="password" id="syncPass" placeholder="パスワード（8文字以上）" autocomplete="current-password">
+          <button type="button" class="btn-sub" id="signInBtn">サインイン / 新規登録</button>
+        </div>
+        <div id="syncSignedIn" hidden>
+          <p class="backup-note" id="syncStatus"></p>
+          <button type="button" class="btn-sub" id="syncNowBtn">🔄 今すぐ同期</button>
+          <button type="button" class="btn-sub" id="signOutBtn">サインアウト</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -346,6 +404,10 @@
   const MODE_DONE_KEY = "expiryManagerModeDoneV1";
   const FILTER_KEY = "expiryManagerFilterV1";
   const STATUS_KEY = "expiryManagerStatusV1";
+  const SYNC_ON_KEY = "expiryManagerSyncOnV1";
+  const DATA_UPDATED_KEY = "expiryManagerDataUpdatedV1";
+  const SUPA_URL = "https://lkahvwhyrsiewbbqoifi.supabase.co";
+  const SUPA_KEY = "sb_publishable_tfzKmRHk1z8AOeX2Po_NXA_wWJrLhf7";
   const $ = (id) => document.getElementById(id);
 
   // 並び順の定義（継続中タブ／終了タブで切り替え）
@@ -470,7 +532,11 @@
     try { return JSON.parse(localStorage.getItem(KEY)) || []; }
     catch (e) { return []; }
   }
-  function saveItems(items) { localStorage.setItem(KEY, JSON.stringify(items)); }
+  function saveItems(items) {
+    localStorage.setItem(KEY, JSON.stringify(items));
+    localStorage.setItem(DATA_UPDATED_KEY, new Date().toISOString());
+    schedulePush();
+  }
 
   function buildPickers() {
     $("iconCurrent").textContent = selIcon;
@@ -917,16 +983,156 @@
     b.onclick = () => { statusView = b.dataset.status; localStorage.setItem(STATUS_KEY, statusView); render(); };
   });
 
-  // 旧「コスメ・日用品」(cat=goods/未設定) を「コスメ」へ一度だけ移行
-  (function migrateCats() {
+  // ---- バックアップ（書き出し／読み込み）----
+  function backupText() {
+    return JSON.stringify({ app: "itsudakke-cho", version: 1, exportedAt: new Date().toISOString(), items: loadItems() });
+  }
+  $("backupToggle").onclick = () => {
+    const p = $("backupPanel");
+    p.hidden = !p.hidden;
+    if (!p.hidden) $("exportArea").value = backupText();
+  };
+  $("exportBtn").onclick = async () => {
+    const text = backupText();
+    $("exportArea").value = text;
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("コピーしました。メモアプリや自分宛てメールに貼り付けて保存してください。");
+    } catch (e) {
+      $("exportArea").focus(); $("exportArea").select();
+      alert("下の枠を長押し →「すべてを選択」→「コピー」で保存してください。");
+    }
+  };
+  $("importBtn").onclick = () => {
+    const raw = $("importArea").value.trim();
+    if (!raw) { alert("読み込むバックアップ文字列を貼り付けてください。"); return; }
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { alert("データの形式が正しくありません。コピーした文字列の全体を貼り付けてください。"); return; }
+    const items = Array.isArray(data) ? data : (data && data.items);
+    if (!Array.isArray(items)) { alert("データの形式が正しくありません。"); return; }
+    if (!confirm(`この端末の現在のデータ（${loadItems().length}件）を、貼り付けた内容（${items.length}件）で上書きします。よろしいですか？`)) return;
+    saveItems(items);
+    location.reload();
+  };
+
+  // 旧「コスメ・日用品」(cat=goods/未設定) を「コスメ」へ・履歴フィールド補完
+  function runMigrations() {
     const items = loadItems();
     let changed = false;
     for (const it of items) {
       if (!it.cat || it.cat === "goods") { it.cat = "cosme"; changed = true; }
-      if (!Array.isArray(it.history)) { it.history = []; changed = true; } // 過去の使用サイクル履歴
+      if (!Array.isArray(it.history)) { it.history = []; changed = true; }
     }
     if (changed) saveItems(items);
-  })();
+  }
+  runMigrations();
+
+  // ===== クラウド同期（Supabase）=====
+  let supaClient = null, pushTimer = null;
+  function loadSupabaseLib() {
+    return new Promise((resolve, reject) => {
+      if (window.supabase && window.supabase.createClient) return resolve();
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+      s.onload = resolve; s.onerror = () => reject(new Error("接続ライブラリの読み込みに失敗しました（オフラインかもしれません）"));
+      document.head.appendChild(s);
+    });
+  }
+  async function getSupa() {
+    if (supaClient) return supaClient;
+    await loadSupabaseLib();
+    supaClient = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+    return supaClient;
+  }
+  async function currentUser() {
+    const sb = await getSupa();
+    const { data } = await sb.auth.getSession();
+    return (data && data.session) ? data.session.user : null;
+  }
+  async function pushCloud() {
+    const u = await currentUser(); if (!u) return;
+    const sb = await getSupa();
+    const updated = localStorage.getItem(DATA_UPDATED_KEY) || new Date().toISOString();
+    const { error } = await sb.from("user_data").upsert({ user_id: u.id, data: loadItems(), updated_at: updated });
+    if (error) throw error;
+  }
+  async function pullCloud() {
+    const u = await currentUser(); if (!u) return;
+    const sb = await getSupa();
+    const { data, error } = await sb.from("user_data").select("data, updated_at").eq("user_id", u.id).maybeSingle();
+    if (error) throw error;
+    if (!data) { await pushCloud(); return; }                // クラウドが空→この端末のデータを上げる
+    const localUpdated = localStorage.getItem(DATA_UPDATED_KEY) || "";
+    const cloudUpdated = data.updated_at || "";
+    if (cloudUpdated > localUpdated) {                       // クラウドが新しい→取り込む
+      localStorage.setItem(KEY, JSON.stringify(data.data || []));
+      localStorage.setItem(DATA_UPDATED_KEY, cloudUpdated);
+      runMigrations();
+      render();
+    } else if (localUpdated > cloudUpdated) {                // ローカルが新しい→上げる
+      await pushCloud();
+    }
+  }
+  function schedulePush() {
+    if (localStorage.getItem(SYNC_ON_KEY) !== "1" || !navigator.onLine) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => { pushCloud().catch(() => {}); }, 1500);
+  }
+
+  async function refreshSyncUI() {
+    let u = null;
+    try { if (localStorage.getItem(SYNC_ON_KEY) === "1") u = await currentUser(); } catch (e) {}
+    $("syncSignedIn").hidden = !u;
+    $("syncSignedOut").hidden = !!u;
+    if (u) $("syncStatus").innerHTML = `同期中：<b>${u.email || ""}</b><br>この端末の変更は自動で同期されます。`;
+  }
+  $("syncToggle").onclick = () => {
+    const p = $("syncPanel"); p.hidden = !p.hidden;
+    if (!p.hidden) refreshSyncUI();
+  };
+  $("signInBtn").onclick = async () => {
+    const email = $("syncEmail").value.trim();
+    const password = $("syncPass").value;
+    if (!email || !password) { alert("メールアドレスとパスワードを入力してください。"); return; }
+    if (password.length < 8) { alert("パスワードは8文字以上にしてください。"); return; }
+    const btn = $("signInBtn"); btn.disabled = true; btn.textContent = "処理中…";
+    try {
+      const sb = await getSupa();
+      let { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        const up = await sb.auth.signUp({ email, password });
+        if (up.error) {
+          if (/already|registered/i.test(up.error.message)) throw new Error("このメールは登録済みです。パスワードが違うようです。");
+          throw up.error;
+        }
+        if (!up.data.session) { throw new Error("確認メールを送りました。メール内のリンクで有効化してから、もう一度サインインしてください。"); }
+      }
+      localStorage.setItem(SYNC_ON_KEY, "1");
+      await pullCloud();
+      await refreshSyncUI();
+      alert("サインインしました。これからこの端末のデータは自動で同期されます。");
+    } catch (e) {
+      alert("サインインできませんでした：" + (e.message || e));
+    } finally {
+      btn.disabled = false; btn.textContent = "サインイン / 新規登録";
+    }
+  };
+  $("syncNowBtn").onclick = async () => {
+    const btn = $("syncNowBtn"); btn.disabled = true; btn.textContent = "同期中…";
+    try { await pullCloud(); await pushCloud(); alert("同期しました。"); }
+    catch (e) { alert("同期に失敗：" + (e.message || e)); }
+    finally { btn.disabled = false; btn.textContent = "🔄 今すぐ同期"; }
+  };
+  $("signOutBtn").onclick = async () => {
+    try { const sb = await getSupa(); await sb.auth.signOut(); } catch (e) {}
+    localStorage.removeItem(SYNC_ON_KEY);
+    await refreshSyncUI();
+    alert("サインアウトしました（この端末のデータは残ります）。");
+  };
+  window.addEventListener("online", () => { if (localStorage.getItem(SYNC_ON_KEY) === "1") pullCloud().catch(() => {}); });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && localStorage.getItem(SYNC_ON_KEY) === "1" && navigator.onLine) pullCloud().catch(() => {});
+  });
 
   populateCategorySelect();
   applyCategoryUI();
@@ -934,6 +1140,9 @@
   $("start").value = todayStr();
   buildPickers();
   render();
+
+  // 起動時：同期ONなら最新を取り込む
+  if (localStorage.getItem(SYNC_ON_KEY) === "1" && navigator.onLine) pullCloud().catch(() => {});
 
   // PWA: Service Worker 登録（オフライン起動・ホーム画面アプリ用）
   if ("serviceWorker" in navigator) {

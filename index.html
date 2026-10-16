@@ -162,6 +162,17 @@
   }
   .seg button:active { transform: scale(0.96); }
   .seg button.active { background: var(--accent); color: #fff; font-weight: 700; }
+  .status-tabs {
+    display: flex; gap: 3px; margin-bottom: 14px; padding: 3px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .status-tabs button {
+    flex: 1; border: none; background: transparent; color: var(--muted);
+    font-size: 13.5px; font-weight: 700; padding: 9px 10px; border-radius: 9px;
+    cursor: pointer; font-family: inherit; transition: background .15s, color .15s;
+  }
+  .status-tabs button .n { font-weight: 600; font-size: 12px; opacity: .85; }
+  .status-tabs button.active { background: var(--accent); color: #fff; }
   .filters { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
   .chip {
     border: 1px solid var(--border); background: var(--card); color: var(--muted);
@@ -315,15 +326,15 @@
       <button class="btn-ghost" id="cancelBtn" style="display:none;">編集をやめる</button>
     </div>
 
+    <div class="status-tabs" id="statusTabs">
+      <button type="button" data-status="active" id="tabActive">継続中</button>
+      <button type="button" data-status="done" id="tabDone">終了</button>
+    </div>
+
     <div class="filters" id="filters"></div>
 
     <div class="toolbar">
-      <div class="seg">
-        <button data-mode="expiry" id="segExpiry">期限順</button>
-        <button data-mode="recent" id="segRecent">新しい順</button>
-        <button data-mode="old" id="segOld">古い順</button>
-        <button data-mode="manual" id="segManual">手動</button>
-      </div>
+      <div class="seg" id="seg"></div>
     </div>
 
     <div class="list" id="list"></div>
@@ -332,8 +343,23 @@
 <script>
   const KEY = "expiryManagerV1";
   const MODE_KEY = "expiryManagerModeV1";
+  const MODE_DONE_KEY = "expiryManagerModeDoneV1";
   const FILTER_KEY = "expiryManagerFilterV1";
+  const STATUS_KEY = "expiryManagerStatusV1";
   const $ = (id) => document.getElementById(id);
+
+  // 並び順の定義（継続中タブ／終了タブで切り替え）
+  const SORTS_ACTIVE = [
+    { mode: "expiry", label: "期限順" },
+    { mode: "recent", label: "新しい順" },
+    { mode: "old", label: "古い順" },
+    { mode: "manual", label: "手動" },
+  ];
+  const SORTS_DONE = [
+    { mode: "done_new", label: "終了が新しい" },
+    { mode: "done_old", label: "終了が古い" },
+    { mode: "manual", label: "手動" },
+  ];
 
   const ICONS = ["🧴","💄","🧼","🪥","🧻","🧷","💊","🧃","☕","🌿","🍼","📦"];
   const COLORS = ["#e08aa4","#5b93c9","#4fb3a4","#6fae86","#d3a24e","#d98a76","#7f9cc4","#9a8fc0"];
@@ -367,7 +393,9 @@
   let selIcon = ICONS[0];
   let selColor = COLORS[0];
   let sortMode = localStorage.getItem(MODE_KEY) || "expiry";
+  let sortModeDone = localStorage.getItem(MODE_DONE_KEY) || "done_new";
   let filterCat = localStorage.getItem(FILTER_KEY) || "all";
+  let statusView = localStorage.getItem(STATUS_KEY) || "active"; // active=継続中 / done=終了
   let editingId = null;
 
   function todayMid() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
@@ -457,12 +485,21 @@
   }
 
   function sortForDisplay(items) {
-    if (sortMode === "manual") return items;
-    if (sortMode === "recent") {
+    const mode = (statusView === "done") ? sortModeDone : sortMode;
+    if (mode === "manual") return items;
+    if (mode === "done_new") {
+      // 終了が新しい順（完了日が新しいものが上）
+      return items.slice().sort((a, b) => ((a.done || "") < (b.done || "") ? 1 : (a.done || "") > (b.done || "") ? -1 : 0));
+    }
+    if (mode === "done_old") {
+      // 終了が古い順（完了日が古いものが上）
+      return items.slice().sort((a, b) => ((a.done || "") > (b.done || "") ? 1 : (a.done || "") < (b.done || "") ? -1 : 0));
+    }
+    if (mode === "recent") {
       // 新しい順（開始日が新しいものが上）
       return items.slice().sort((a, b) => (a.start < b.start ? 1 : a.start > b.start ? -1 : 0));
     }
-    if (sortMode === "old") {
+    if (mode === "old") {
       // 古い順（開始日が古いものが上）
       return items.slice().sort((a, b) => (a.start > b.start ? 1 : a.start < b.start ? -1 : 0));
     }
@@ -475,12 +512,12 @@
     });
   }
 
-  function renderFilters() {
+  // カテゴリchipは、現在の「継続中／終了」ビュー内の件数でカウント
+  function renderFilters(viewItems) {
     const wrap = $("filters"); wrap.innerHTML = "";
-    const items = loadItems();
     const chips = [{ id: "all", label: "すべて", emoji: "🗂" }].concat(CATS);
     chips.forEach(c => {
-      const count = (c.id === "all") ? items.length : items.filter(it => (it.cat || "cosme") === c.id).length;
+      const count = (c.id === "all") ? viewItems.length : viewItems.filter(it => (it.cat || "cosme") === c.id).length;
       const b = document.createElement("button");
       b.className = "chip" + (filterCat === c.id ? " active" : "");
       b.textContent = `${c.emoji} ${c.label}` + (count ? ` (${count})` : "");
@@ -489,23 +526,57 @@
     });
   }
 
+  // 並び順ボタンを現在のタブに合わせて生成
+  function renderSort() {
+    const seg = $("seg"); seg.innerHTML = "";
+    const list = (statusView === "done") ? SORTS_DONE : SORTS_ACTIVE;
+    const cur = (statusView === "done") ? sortModeDone : sortMode;
+    list.forEach(s => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = (s.mode === cur) ? "active" : "";
+      b.textContent = s.label;
+      b.onclick = () => {
+        if (statusView === "done") { sortModeDone = s.mode; localStorage.setItem(MODE_DONE_KEY, sortModeDone); }
+        else { sortMode = s.mode; localStorage.setItem(MODE_KEY, sortMode); }
+        render();
+      };
+      seg.appendChild(b);
+    });
+  }
+
   function render() {
-    renderFilters();
-    let items = loadItems();
-    const total = items.length;
-    if (filterCat !== "all") items = items.filter(it => (it.cat || "cosme") === filterCat);
+    const all = loadItems();
+    const total = all.length;
+    const activeCount = all.filter(it => !it.done).length;
+    const doneCount = all.filter(it => it.done).length;
+
+    // 継続中／終了タブ
+    $("tabActive").innerHTML = `継続中 <span class="n">(${activeCount})</span>`;
+    $("tabDone").innerHTML = `終了 <span class="n">(${doneCount})</span>`;
+    $("tabActive").classList.toggle("active", statusView === "active");
+    $("tabDone").classList.toggle("active", statusView === "done");
+
+    // ステータスで分ける → カテゴリchip → 並び順
+    const statusItems = all.filter(it => statusView === "done" ? !!it.done : !it.done);
+    renderFilters(statusItems);
+    renderSort();
+    let items = (filterCat === "all") ? statusItems : statusItems.filter(it => (it.cat || "cosme") === filterCat);
     items = sortForDisplay(items);
-    $("segExpiry").classList.toggle("active", sortMode === "expiry");
-    $("segRecent").classList.toggle("active", sortMode === "recent");
-    $("segOld").classList.toggle("active", sortMode === "old");
-    $("segManual").classList.toggle("active", sortMode === "manual");
 
     const list = $("list");
     list.innerHTML = "";
     if (items.length === 0) {
-      list.innerHTML = (total === 0)
-        ? '<div class="empty">まだ登録がありません。<br>コスメ・日用品や、会った人・やったことを追加してください。</div>'
-        : '<div class="empty">このカテゴリの登録はありません。</div>';
+      let msg;
+      if (total === 0) {
+        msg = 'まだ登録がありません。<br>コスメ・日用品や、会った人・やったことを追加してください。';
+      } else if (statusView === "done" && doneCount === 0) {
+        msg = '終了したアイテムはまだありません。<br>使い切ったら ✓ でチェックすると、ここにまとまります。';
+      } else {
+        const label = statusView === "done" ? "終了した" : "継続中の";
+        msg = (filterCat === "all") ? `${label}アイテムはありません。` : `このカテゴリに${label}アイテムはありません。`;
+      }
+      list.innerHTML = `<div class="empty">${msg}</div>`;
       return;
     }
 
@@ -842,8 +913,8 @@
     render();
   };
 
-  document.querySelectorAll(".seg button").forEach(b => {
-    b.onclick = () => { sortMode = b.dataset.mode; localStorage.setItem(MODE_KEY, sortMode); render(); };
+  document.querySelectorAll(".status-tabs button").forEach(b => {
+    b.onclick = () => { statusView = b.dataset.status; localStorage.setItem(STATUS_KEY, statusView); render(); };
   });
 
   // 旧「コスメ・日用品」(cat=goods/未設定) を「コスメ」へ一度だけ移行
